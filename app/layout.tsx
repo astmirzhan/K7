@@ -1,23 +1,25 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Press_Start_2P } from 'next/font/google';
+import { Jersey_10, Pixelify_Sans } from 'next/font/google';
 import './globals.css';
 
-const inter = Inter({ variable: '--font-inter', subsets: ['latin'] });
-const pixel = Press_Start_2P({ variable: '--font-pixel', weight: '400', subsets: ['latin'] });
+const display = Jersey_10({ variable: '--font-display', weight: '400', subsets: ['latin'] });
+const body = Pixelify_Sans({ variable: '--font-body', weight: ['400', '500', '600', '700'], subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'K7 — Your goal is a quest',
-  description: 'Turn any goal into a quest with people near you.',
+  description: "Your goal is a quest. Don't play it alone.",
 };
 
 export const viewport: Viewport = {
-  themeColor: '#1b5e20',
+  themeColor: '#8FA4E7',
   viewportFit: 'cover',
+  width: 'device-width',
+  initialScale: 1,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${pixel.variable} h-full antialiased`}>
+    <html lang="en" className={`${display.variable} ${body.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
