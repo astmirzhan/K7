@@ -154,7 +154,7 @@ export interface MapUsersResponse {
 export interface Connection {
   id: string;
   interestSlug: string;
-  status: 'pending' | 'accepted';
+  status: 'pending' | 'accepted' | 'declined'; // declined only in the PATCH response
   direction: 'incoming' | 'outgoing';
   createdAt: string;
   other: UserMini & { city: string; state: UsState; bio: string };
