@@ -98,5 +98,6 @@ test('blocked user disappears both ways; declined request hides the pair; report
   expect(declined.status).toBe(200);
   expect(declined.body.status).toBe('declined');
   expect((await api.get<MapUsersResponse>('/api/map/users?state=VT', a.token)).body.items).toHaveLength(0);
-  expect((await api.get<MapUsersResponse>('/api/map/users?state=VT', c.token)).body.items).toHaveLength(0);
+  // c no longer sees a, but still sees b (c never blocked or declined b)
+  expect((await api.get<MapUsersResponse>('/api/map/users?state=VT', c.token)).body.items.map((i) => i.user.userId)).toEqual([b.id]);
 });

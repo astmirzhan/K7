@@ -52,7 +52,7 @@ test('before onboarding: /me says onboarded:false, data routes say NOT_ONBOARDED
     ['get', '/api/map/states', null],
     ['get', '/api/map/users?state=TX', null],
     ['get', '/api/connections', null],
-    ['post', '/api/connections', { toUserId: u.id, interestSlug: 'running' }],
+    ['post', '/api/connections', { toUserId: crypto.randomUUID(), interestSlug: 'running' }],
     ['get', '/api/meetups', null],
     ['get', '/api/feed', null],
     ['post', '/api/reports', { targetUserId: u.id }],

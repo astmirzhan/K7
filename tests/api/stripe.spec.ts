@@ -33,6 +33,7 @@ async function plan(api: Api, token: string): Promise<string> {
 }
 
 test('webhook: checkout.session.completed sets the plan, subscription.deleted resets it, bad signature → 400', async ({ request }) => {
+  test.skip(!process.env.STRIPE_WEBHOOK_SECRET, 'needs STRIPE_WEBHOOK_SECRET');
   const api = new Api(request);
   const u = await onboardedUser(users, api);
   expect(await plan(api, u.token)).toBe('free');
