@@ -84,6 +84,11 @@ async function coop(a: SeededUser, b: SeededUser, slug: string, catalog: Map<str
       if (!r.ok) return false;
     }
   }
+  // both co-op stages must be open now, otherwise skip the pair (e.g. the buddy stage did not unlock yet)
+  for (const u of [a, b]) {
+    const stage = (await stagesOf(u.id)).find((s) => s.interest_slug === slug && s.kind === 'coop')!;
+    if (stage.status !== 'active') return false;
+  }
   const interest = catalog.get(slug)!;
   for (const [u, partner] of [[a, b], [b, a]] as const) {
     const stage = (await stagesOf(u.id)).find((s) => s.interest_slug === slug && s.kind === 'coop')!;
