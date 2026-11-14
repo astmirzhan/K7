@@ -1,5 +1,5 @@
 import { requireUser } from '@/lib/server/auth';
-import { loadConnection } from '@/lib/server/connections';
+import { loadConnection, sharedInterestsFor } from '@/lib/server/connections';
 import { AppError, fromDbError } from '@/lib/server/errors';
 import { parseJson, parseWith, route } from '@/lib/server/http';
 import { adminClient } from '@/lib/server/supabase';
@@ -38,6 +38,7 @@ export const PATCH = route<{ id: string }>(async (req, { params }) => {
     direction: row.from_id === user.id ? 'outgoing' : 'incoming',
     createdAt: row.created_at,
     other: { userId: o.id, displayName: o.display_name, avatar: o.avatar, city: o.city, state: o.state, bio: o.bio },
+    sharedInterests: (await sharedInterestsFor(user.id, [o.id])).get(o.id) ?? [],
     socialUrl: null,
   };
   return res;

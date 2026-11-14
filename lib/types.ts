@@ -153,12 +153,13 @@ export interface MapUsersResponse {
 // ---------- Connections & meetups ----------
 export interface Connection {
   id: string;
-  interestSlug: string;
-  status: 'pending' | 'accepted' | 'declined'; // declined only in the PATCH response
+  interestSlug: string;         // interest the request was sent for
+  status: 'pending' | 'accepted' | 'declined'; // lists never contain declined; PATCH can return it
   direction: 'incoming' | 'outgoing';
   createdAt: string;
   other: UserMini & { city: string; state: UsState; bio: string };
-  socialUrl: string | null; // only when accepted
+  sharedInterests: string[];    // slugs both people have (co-op partner picker filters by this)
+  socialUrl: string | null;     // only when accepted
 }
 export interface ConnectionsResponse {
   incoming: Connection[];

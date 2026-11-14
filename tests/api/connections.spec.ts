@@ -59,6 +59,7 @@ test('accept by sender → 403; socialUrl only after accept; duplicates → 409'
 
   const aList = await api.get<ConnectionsResponse>('/api/connections', a.token);
   expect(aList.body.accepted[0]!.socialUrl).toBe('https://linkedin.com/in/ninja-b');
+  expect([...aList.body.accepted[0]!.sharedInterests].sort()).toEqual(['guitar', 'running', 'spanish']);
 
   const twice = await api.patch<ApiError>(`/api/connections/${req.body.id}`, { status: 'declined' }, b.token);
   expect(twice.status).toBe(409);

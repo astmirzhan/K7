@@ -20,7 +20,7 @@ export interface ConnectionListRow {
   social_url: string | null;
 }
 
-export function toConnection(meId: string, r: ConnectionListRow): Connection {
+export function toConnection(meId: string, r: ConnectionListRow, sharedInterests: string[] = []): Connection {
   return {
     id: r.id,
     interestSlug: r.interest_slug,
@@ -35,8 +35,30 @@ export function toConnection(meId: string, r: ConnectionListRow): Connection {
       state: r.other_state,
       bio: r.other_bio,
     },
+    sharedInterests,
     socialUrl: r.status === 'accepted' ? r.social_url : null,
   };
+}
+
+/** Interest slugs shared between me and each of `otherIds`: one query for everyone. */
+export async function sharedInterestsFor(meId: string, otherIds: string[]): Promise<Map<string, string[]>> {
+  const out = new Map<string, string[]>();
+  if (otherIds.length === 0) return out;
+  const ids = Array.from(new Set([meId, ...otherIds]));
+  const { data, error } = await adminClient().from('user_interests').select('user_id, interest_slug').in('user_id', ids);
+  if (error) throw new AppError('INTERNAL', undefined, { details: error.message });
+  const rows = data as Array<{ user_id: string; interest_slug: string }>;
+  const mine = new Set(rows.filter((r) => r.user_id === meId).map((r) => r.interest_slug));
+  for (const r of rows) {
+    if (r.user_id === meId || !mine.has(r.interest_slug)) continue;
+    out.set(r.user_id, [...(out.get(r.user_id) ?? []), r.interest_slug]);
+  }
+  return out;
+}
+
+async function mapAll(meId: string, rows: ConnectionListRow[]): Promise<Connection[]> {
+  const shared = await sharedInterestsFor(meId, rows.map((r) => r.other_id));
+  return rows.map((r) => toConnection(meId, r, shared.get(r.other_id) ?? []));
 }
 
 export async function listConnections(meId: string): Promise<ConnectionListRow[]> {
@@ -46,8 +68,7 @@ export async function listConnections(meId: string): Promise<ConnectionListRow[]
 }
 
 export async function groupedConnections(meId: string): Promise<ConnectionsResponse> {
-  const rows = await listConnections(meId);
-  const all = rows.map((r) => toConnection(meId, r));
+  const all = await mapAll(meId, await listConnections(meId));
   return {
     incoming: all.filter((c) => c.status === 'pending' && c.direction === 'incoming'),
     outgoing: all.filter((c) => c.status === 'pending' && c.direction === 'outgoing'),
@@ -59,5 +80,5 @@ export async function groupedConnections(meId: string): Promise<ConnectionsRespo
 export async function loadConnection(meId: string, connectionId: string): Promise<Connection> {
   const row = (await listConnections(meId)).find((r) => r.id === connectionId);
   if (!row) throw new AppError('NOT_FOUND');
-  return toConnection(meId, row);
+  return (await mapAll(meId, [row]))[0]!;
 }

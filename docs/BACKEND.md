@@ -17,7 +17,7 @@ Zod 4.6, `stripe` 23, PostgreSQL 16/17.
 | `supabase/migrations/20261114000003_interests.sql` | Catalog of 30 interests | `pnpm test:db` |
 | `tests/db/*` | Plain-Postgres test harness (no Docker, no Supabase) | — |
 | `lib/types.ts` | API contract | `tsc` |
-| `lib/server/errors.ts, plans.ts, validation.ts, roadmap/*` | Error mapping, plan rules, Zod schemas, social-link check, roadmap skeleton, templates, AI generation with fallback | `pnpm test:unit` (32 tests) |
+| `lib/server/errors.ts, plans.ts, validation.ts, roadmap/*` | Error mapping, plan rules, Zod schemas, social-link check, roadmap skeleton, templates, AI generation with fallback | `pnpm test:unit` (`tests/unit/core.test.ts`, 32 tests) |
 | `lib/server/env.ts, supabase.ts, auth.ts, http.ts, storage.ts, stripe.ts, roadmap/read.ts` | Server infrastructure and roadmap read model | `next build` typecheck |
 | `app/api/stages/[id]/complete/route.ts` | **Reference route** — every route follows this pattern | `next build` |
 | `app/api/stripe/webhook/route.ts`, `app/api/health/route.ts` | Stripe webhook, health check | `next build` |
@@ -28,7 +28,6 @@ Differences from `docs/TZ.md` v2 (deliberate):
 - `GET /api/map/users` returns `{ items, hiddenCount }` (the paywall needs the hidden count).
 - Upload returns `{ photoPath, token, signedUrl }`: the browser uploads with `uploadToSignedUrl(photoPath, token, file)`.
 - Added: `GET /api/health`, `GET /api/meetups`. Pro unlocks AI **steps** inside every stage (see §7.1).
-- `Connection.status` also allows `'declined'`: it appears only in the response of `PATCH /api/connections/[id]` with `{ status: 'declined' }` (declined connections are never listed).
 
 ---
 
@@ -255,7 +254,7 @@ Every route: `route()` wrapper → `requireUser` → Zod (`parseJson` / `parseQu
 | 7 | `POST /api/stages/[id]/complete` | `completeStageSchema` | `CompleteStageResponse` | **exists**. Photo must exist in Storage |
 | 8 | `GET /api/map/states` | — | `MapStateCount[]` | sorted by count desc |
 | 9 | `GET /api/map/users` | `?state=` (`mapUsersQuerySchema`) | `MapUsersResponse` | §7.4 |
-| 10 | `GET /api/connections` | — | `ConnectionsResponse` | from `list_connections`; incoming = pending & to me; outgoing = pending & from me |
+| 10 | `GET /api/connections` | — | `ConnectionsResponse` | from `list_connections`; incoming = pending & to me; outgoing = pending & from me. `sharedInterests` per connection = one `user_interests` query for all other ids, intersected with mine (`lib/server/connections.ts`); the same mapper is used by #11 and #12 |
 | 11 | `POST /api/connections` | `createConnectionSchema` | `Connection` | `request_connection`; 402 → `requiredPlan:'starter'` |
 | 12 | `PATCH /api/connections/[id]` | `respondConnectionSchema` | `Connection` | `respond_connection`; on accept `socialUrl` filled |
 | 13 | `GET /api/meetups` | — | `Meetup[]` | my connections' meetups, upcoming first |
@@ -342,7 +341,7 @@ Rules: a DB change ships with a scenario in `tests/db/scenarios.sql`; a route sh
 - `stages.spec`: solo complete pays 1; locked stage → 409; Medium on Free → 402 + `requiredPlan:'starter'`; upload-url → upload with `uploadToSignedUrl` → complete with photo → `report.photoUrl` present, +2; foreign `photoPath` → 400; coop without photo → 422.
 - `coop.spec`: two users, connect, accept (connect stages auto-done), both upload, first gets `waitingForPartner:true`, second gets `levelCompleted:true`; both have ×2 coins; feed shows both with partner names.
 - `map.spec`: Free sees ≤ 10 overall + `hiddenCount`; starter sees all; blocked user disappears both ways; declined disappears.
-- `connections.spec`: 4th request on Free → 402; accept by sender → 403; `socialUrl` only after accept.
+- `connections.spec`: 4th request on Free → 402; accept by sender → 403; `socialUrl` only after accept; `sharedInterests` lists exactly the slugs both people have.
 - `meetups.spec`: create only on accepted; confirm by proposer → 409; cancel → status.
 - `stripe.spec`: webhook with a body signed by `stripe.webhooks.generateTestHeaderString({ payload, secret: STRIPE_WEBHOOK_SECRET })` sets the plan; `customer.subscription.deleted` → free; bad signature → 400; checkout returns a `https://checkout.stripe.com/` URL. `confirm` needs a paid session, so it is covered by the manual prod check in B9.
 - `security.spec`: with the publishable key + user JWT, `select social_url from profiles` returns only own row; `rpc('complete_stage')` → permission denied; `public_profiles` → denied.
