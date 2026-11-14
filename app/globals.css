@@ -1,26 +1,250 @@
 @import "tailwindcss";
 
+/* K7 v2 tokens (Figma "k7-final-version" → Frontend handoff) */
+@theme {
+  --color-sky: #8fa4e7;
+  --color-sky-low: #e0fab2;
+  --color-ink: #2e1b5b;
+  --color-yellow: #ffc803;
+  --color-mist: #f3f5ff;
+  --color-lilac: #c9d2f7;
+  --color-moss: #7f8f5e;
+  --color-leaf: #4c8c4a;
+  --color-grass: #a6d86a;
+  --color-forest: #2f6b45;
+  --color-pink: #ff6fa8;
+  --color-wood: #8a5a2b;
+  --color-wood-dark: #5a3a1a;
+  --color-danger: #d84b6a;
+
+  --font-display: var(--font-display), "Jersey 10", monospace;
+  --font-body: var(--font-body), "Pixelify Sans", monospace;
+
+  --radius-k7: 12px;
+  --radius-k7-lg: 16px;
+  --shadow-hard: 0 6px 0 0 var(--color-ink);
+  --shadow-hard-sm: 0 4px 0 0 var(--color-ink);
+  --shadow-hard-lg: 0 8px 0 0 var(--color-ink);
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background: var(--color-sky);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.35;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* pixel art never gets smoothed */
+.pixelated,
+.pixelated * {
+  image-rendering: pixelated;
+  shape-rendering: crispEdges;
+}
+
+/* Hard ink outline + hard shadow, the two rules from the handoff */
+.k7-outline {
+  border: 4px solid var(--color-ink);
+}
+.k7-shadow {
+  box-shadow: var(--shadow-hard);
+}
+.k7-shadow-sm {
+  box-shadow: var(--shadow-hard-sm);
+}
+.k7-shadow-lg {
+  box-shadow: var(--shadow-hard-lg);
+}
+
+/* Display font: Jersey 10 renders small, so headings use larger sizes */
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: 0.01em;
+}
+
+/* Big white heading with ink hard shadow (01/02/03/10/11) */
+.k7-title {
+  font-family: var(--font-display);
+  color: #fff;
+  text-shadow: 4px 4px 0 var(--color-ink);
+  line-height: 0.9;
+}
+
+.k7-label {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* pixel step clip for cloud bands/hills — crisp steps, no AA */
+.k7-stripes {
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--color-grass) 0 16px,
+    #c8ee9a 16px 32px
+  );
+}
+.k7-ground {
+  background-color: var(--color-forest);
+  background-image: radial-gradient(#245236 1.5px, transparent 1.6px);
+  background-size: 24px 24px;
+  background-position: 6px 6px;
+}
+
+/* focus — visible and in the system's style */
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--color-yellow);
+  outline-offset: 2px;
+}
+
+/* in @layer base so utilities like text-yellow still win */
+@layer base {
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: color-mix(in srgb, var(--color-ink) 45%, transparent);
+  }
+}
+
+/* motion */
+@keyframes k7-pop {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes k7-coin-burst {
+  0% {
+    transform: translate(0, 0) scale(0.6);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--dx), var(--dy)) scale(1);
+    opacity: 0;
+  }
+}
+@keyframes k7-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+@keyframes k7-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+@keyframes k7-bounce {
+  0% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-6px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+@keyframes k7-confetti {
+  0% {
+    transform: translateY(-20px) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) rotate(720deg);
+    opacity: 1;
+  }
+}
+@keyframes k7-skeleton {
+  0% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0.55;
+  }
+}
+.k7-pop {
+  animation: k7-pop 220ms ease-out both;
+}
+.k7-float {
+  animation: k7-float 2.4s ease-in-out infinite;
+}
+.k7-pulse {
+  animation: k7-pulse 1.2s ease-in-out infinite;
+}
+.k7-bounce {
+  animation: k7-bounce 320ms ease-out;
+}
+.k7-skeleton {
+  background: var(--color-lilac);
+  border-radius: 8px;
+  animation: k7-skeleton 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .k7-pop,
+  .k7-float,
+  .k7-pulse,
+  .k7-bounce,
+  .k7-skeleton,
+  .k7-coin,
+  .k7-confetti {
+    animation: none !important;
+  }
+}
+
+/* Reels-style feed on phones */
+.k7-snap {
+  scroll-snap-type: y mandatory;
+}
+.k7-snap > * {
+  scroll-snap-align: start;
+}
+
+/* native pickers inherit the pixel look */
+select {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--color-ink) 50%),
+    linear-gradient(135deg, var(--color-ink) 50%, transparent 50%);
+  background-position: calc(100% - 20px) 55%, calc(100% - 14px) 55%;
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
 }
