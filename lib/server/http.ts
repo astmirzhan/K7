@@ -1,3 +1,4 @@
+import { unstable_rethrow } from 'next/navigation';
 import type { ZodType } from 'zod';
 import { AppError, toErrorResponse } from './errors';
 
@@ -14,6 +15,7 @@ export function route<P = Record<string, never>>(
       const data = await handler(req, ctx);
       return Response.json(data ?? { ok: true });
     } catch (e) {
+      unstable_rethrow(e); // Next.js control-flow errors (prerender bail-out, redirects) are not API errors
       const { status, body } = toErrorResponse(e);
       return Response.json(body, { status });
     }

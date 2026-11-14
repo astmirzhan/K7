@@ -28,6 +28,7 @@ Differences from `docs/TZ.md` v2 (deliberate):
 - `GET /api/map/users` returns `{ items, hiddenCount }` (the paywall needs the hidden count).
 - Upload returns `{ photoPath, token, signedUrl }`: the browser uploads with `uploadToSignedUrl(photoPath, token, file)`.
 - Added: `GET /api/health`, `GET /api/meetups`. Pro unlocks AI **steps** inside every stage (see §7.1).
+- `Connection.status` also allows `'declined'`: it appears only in the response of `PATCH /api/connections/[id]` with `{ status: 'declined' }` (declined connections are never listed).
 
 ---
 
