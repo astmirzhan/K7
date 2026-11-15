@@ -66,14 +66,14 @@ test('accept by sender → 403; socialUrl only after accept; duplicates → 409'
   expect(twice.body.error.code).toBe('INVALID_STATE');
 });
 
-test('no shared interest → 422; unknown user → 404; self → 400', async ({ request }) => {
+test('request about a goal the sender does not have → 422; unknown user → 404; self → 400', async ({ request }) => {
   const api = new Api(request);
   const a = await onboardedUser(users, api);
   const b = await onboardedUser(users, api, {
     interests: [{ slug: 'yoga', difficulty: 1 }, { slug: 'french', difficulty: 3 }, { slug: 'piano', difficulty: 5 }],
   });
 
-  const none = await api.post<ApiError>('/api/connections', { toUserId: b.id, interestSlug: 'running' }, a.token);
+  const none = await api.post<ApiError>('/api/connections', { toUserId: b.id, interestSlug: 'yoga' }, a.token); // yoga is not a's goal
   expect(none.status).toBe(422);
   expect(none.body.error.code).toBe('NO_SHARED_INTEREST');
 

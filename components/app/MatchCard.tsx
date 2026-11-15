@@ -20,11 +20,22 @@ function bestInterest(list: SharedInterest[]): SharedInterest | undefined {
 }
 
 // 06 Match card: avatar · name · city · bio · shared interests with both difficulties · Connect · menu.
-export function MatchCard({ card, onGone }: { card: MatchCardData; onGone?: () => void }) {
+export function MatchCard({
+  card,
+  myGoals,
+  onGone,
+}: {
+  card: MatchCardData;
+  /** my goals: a request without a shared goal is about one of them */
+  myGoals: Array<{ slug: string; name: string }>;
+  onGone?: () => void;
+}) {
   const { user, sharedInterests, sameCity, connection } = card;
   const [busy, setBusy] = useState(false);
   const [menu, setMenu] = useState(false);
-  const [pick, setPick] = useState<string>(bestInterest(sharedInterests)?.slug ?? '');
+  // what the request is about: a shared goal when there is one, else one of mine
+  const options = sharedInterests.length > 0 ? sharedInterests.map((s) => ({ slug: s.slug, name: s.name })) : myGoals;
+  const [pick, setPick] = useState<string>(bestInterest(sharedInterests)?.slug ?? myGoals[0]?.slug ?? '');
   const [choosing, setChoosing] = useState(false);
   const [report, setReport] = useState<null | 'report' | 'block'>(null);
   const [reason, setReason] = useState('');
@@ -47,11 +58,11 @@ export function MatchCard({ card, onGone }: { card: MatchCardData; onGone?: () =
   }
 
   function connect() {
-    if (sharedInterests.length > 1 && !choosing) {
+    if (options.length > 1 && !choosing) {
       setChoosing(true);
       return;
     }
-    const slug = pick || sharedInterests[0]?.slug;
+    const slug = pick || options[0]?.slug;
     if (!slug) return;
     let accepted = false;
     void run(
@@ -177,7 +188,9 @@ export function MatchCard({ card, onGone }: { card: MatchCardData; onGone?: () =
         </div>
       ) : null}
 
-      <p className="text-[13px] font-semibold text-leaf">{matchReason(sharedInterests.map((s) => s.name), sameCity)}</p>
+      <p className="text-[13px] font-semibold text-leaf">
+        {sharedInterests.length > 0 ? matchReason(sharedInterests.map((s) => s.name), sameCity) : sameCity ? 'Same city · different goals' : 'Different goals · say hi anyway'}
+      </p>
       {user.bio ? <p className="text-[14px] text-ink/85">{user.bio}</p> : null}
 
       <ul className="flex flex-wrap gap-2" aria-label="Shared interests">
@@ -194,9 +207,9 @@ export function MatchCard({ card, onGone }: { card: MatchCardData; onGone?: () =
 
       {choosing ? (
         <div className="flex flex-col gap-2 rounded-[10px] border-[3px] border-ink bg-mist p-3">
-          <span className="k7-label">Connect for</span>
+          <span className="k7-label">{sharedInterests.length > 0 ? 'Connect for' : 'Say hi about your goal'}</span>
           <div className="flex flex-wrap gap-2" role="radiogroup">
-            {sharedInterests.map((s) => (
+            {options.map((s) => (
               <button
                 key={s.slug}
                 type="button"
