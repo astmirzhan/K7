@@ -5,7 +5,7 @@ import { Cloud } from '@/components/scene/Cloud';
 import { Coin } from '@/components/scene/Coin';
 import { BADGES, NinjaBadge } from '@/components/scene/NinjaBadge';
 import { Button } from '@/components/ui/Button';
-import { credentialId, linkedinAddUrl } from '@/lib/credential';
+import { credentialId, K7_LINKEDIN_ORG_ID, linkedinAddUrl } from '@/lib/credential';
 import { DIFFICULTY_LABEL } from '@/lib/format';
 import { toast } from '@/lib/toast';
 import type { Avatar, Difficulty, Level } from '@/lib/types';
@@ -102,7 +102,7 @@ export function LevelComplete({
 
   function addToLinkedin() {
     window.open(
-      linkedinAddUrl({ name: title, certId, certUrl: window.location.origin, issued, orgId: process.env.NEXT_PUBLIC_LINKEDIN_ORG_ID || undefined }),
+      linkedinAddUrl({ name: title, certId, certUrl: window.location.origin, issued, orgId: process.env.NEXT_PUBLIC_LINKEDIN_ORG_ID || K7_LINKEDIN_ORG_ID }),
       '_blank',
       'noopener,noreferrer',
     );
