@@ -3,7 +3,7 @@
 import type {
   ApiError, ApiErrorCode, BlockRequest, CheckoutRequest, CheckoutResponse, CompleteStageRequest,
   CompleteStageResponse, ConfirmCheckoutRequest, ConfirmCheckoutResponse, Connection, ConnectionsResponse,
-  CreateConnectionRequest, CreateMeetupRequest, FeedItem, Interest, Level, MapStateCount, MapUsersResponse,
+  CreateConnectionRequest, CreateMeetupRequest, CustomInterestRequest, FeedItem, Interest, Level, MapStateCount, MapUsersResponse,
   IcebreakerResponse, Me, Meetup, OkResponse, OnboardingRequest, OnboardingResponse, PaidPlan, PublicStats, ReportRequest,
   RespondConnectionRequest, UpdateMeetupRequest, UploadUrlResponse, UsState,
 } from './types';
@@ -123,6 +123,7 @@ export const api = {
   health: () => request<{ ok: boolean; interests: number }>('GET', '/api/health'),
   interests: () => request<Interest[]>('GET', KEYS.interests),
   stats: () => request<PublicStats>('GET', KEYS.stats),
+  customInterest: (body: CustomInterestRequest) => request<Interest>('POST', '/api/interests/custom', body),
   me: () => request<Me>('GET', KEYS.me),
   onboarding: (body: OnboardingRequest) => request<OnboardingResponse>('POST', '/api/onboarding', body),
 
