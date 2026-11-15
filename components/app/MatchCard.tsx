@@ -53,7 +53,18 @@ export function MatchCard({ card, onGone }: { card: MatchCardData; onGone?: () =
     }
     const slug = pick || sharedInterests[0]?.slug;
     if (!slug) return;
-    void run(() => api.connect({ toUserId: user.userId, interestSlug: slug }), invalidate.afterConnect).then(() => setChoosing(false));
+    let accepted = false;
+    void run(
+      async () => {
+        const c = await api.connect({ toUserId: user.userId, interestSlug: slug });
+        accepted = c.status === 'accepted';
+      },
+      // an instant accept also completes "Find a buddy" and awards coins: refresh like a manual accept
+      () => (accepted ? invalidate.afterRespond() : invalidate.afterConnect()),
+    ).then(() => {
+      setChoosing(false);
+      if (accepted) toast(`${user.displayName} accepted. You're buddies now!`, { tone: 'success' });
+    });
   }
 
   function respond(status: 'accepted' | 'declined') {
