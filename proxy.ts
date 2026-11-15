@@ -4,7 +4,8 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 const APP_PREFIXES = ['/home', '/roadmap', '/map', '/people', '/feed', '/profile', '/pricing', '/billing', '/onboarding'];
-const AUTH_PAGES = ['/login', '/signup'];
+// Signed-in users skip sign-up; /login stays open so they can switch accounts (the form says who is signed in).
+const AUTH_PAGES = ['/signup'];
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
