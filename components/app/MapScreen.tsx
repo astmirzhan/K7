@@ -95,7 +95,7 @@ function Inner({ me }: { me: OnboardedMe }) {
                     data-testid={`map-tile-${st}`}
                     onClick={() => go({ state: st })}
                     className={`pixelated flex aspect-square flex-col items-center justify-center rounded-[4px] border-[2px] border-ink transition-transform active:scale-95 md:rounded-[6px] md:border-[3px] ${
-                      active ? 'bg-ink text-yellow' : heat
+                      active ? 'k7-bounce bg-ink text-yellow' : heat
                     } ${mine && !active ? 'ring-2 ring-pink ring-offset-1 ring-offset-mist' : ''}`}
                     style={{ gridRow: pos.row + 1, gridColumn: pos.col + 1 }}
                   >
