@@ -12,6 +12,12 @@
 
 ---
 
+## 🎬 Demo video
+
+<a href="docs/readme/demo.mp4"><img src="docs/readme/demo-poster.jpg" alt="K7 demo video: tap to play" width="100%" /></a>
+
+**[▶ Watch the demo (MP4)](docs/readme/demo.mp4)**: a full run from naming your ninja to a co-op stage and a badge.
+
 ## 🪙 What it is
 
 Most people quit a new goal in the first two weeks because they do it alone. K7 turns any goal into a short
