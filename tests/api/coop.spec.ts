@@ -50,7 +50,7 @@ test('co-op as tagging: one photo tagging a buddy closes the stage for both, coi
   expect(post.body.coinsAwarded).toBe(4); // 2 photo + 1 stage + 1 coop bonus
 
   // B's co-op stage is already done; posting again is refused
-  const again = await api.post<ApiError>(`/api/stages/${bCoop.id}/complete`, { photoPath: 'x', partnerId: a.id }, b.token);
+  const again = await api.post<ApiError>(`/api/stages/${bCoop.id}/complete`, { partnerId: a.id }, b.token);
   expect(again.status).toBe(409);
   expect(again.body.error.code).toBe('STAGE_NOT_ACTIVE');
 

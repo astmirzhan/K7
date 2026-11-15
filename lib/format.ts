@@ -54,3 +54,18 @@ export function matchReason(names: string[], sameCity: boolean): string {
   const list = names.length === 1 ? names[0]! : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
   return `You both do ${list}${sameCity ? ' · same city' : ''}`;
 }
+
+/** "@nqzmirzhan" from an Instagram, X or LinkedIn profile link; null when the link has no handle. */
+export function socialHandle(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    const parts = u.pathname.split('/').filter(Boolean);
+    // linkedin.com/in/<handle>, instagram.com/<handle>, x.com/<handle>
+    const handle = u.hostname.includes('linkedin.') ? (parts[0] === 'in' || parts[0] === 'pub' ? parts[1] : parts[0]) : parts[0];
+    if (!handle || !/^[A-Za-z0-9._-]{2,40}$/.test(handle)) return null;
+    return `@${handle}`;
+  } catch {
+    return null;
+  }
+}

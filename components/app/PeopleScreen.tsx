@@ -10,7 +10,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Panel } from '@/components/ui/Panel';
 import { EmptyState, ErrorState, PanelSkeleton } from '@/components/ui/States';
 import { api, ApiRequestError } from '@/lib/api';
-import { localInputToIso } from '@/lib/format';
+import { localInputToIso, socialHandle } from '@/lib/format';
 import { invalidate, useConnections, useMeetups } from '@/lib/hooks';
 import { formatWhen } from '@/lib/relative-time';
 import { toast } from '@/lib/toast';
@@ -156,7 +156,7 @@ function Inner({ me }: { me: OnboardedMe }) {
               <div className="flex flex-wrap gap-2">
                 {c.socialUrl ? (
                   <a href={c.socialUrl} target="_blank" rel="noopener noreferrer" data-testid={`social-${c.id}`} className="k7-label inline-flex h-10 items-center rounded-[10px] border-[3px] border-ink bg-white px-3.5 hover:bg-mist">
-                    open profile ↗
+                    {socialHandle(c.socialUrl) ?? 'open profile'} ↗
                   </a>
                 ) : null}
                 <Button size="sm" onClick={() => setPropose(c)} data-testid={`propose-meetup-${c.id}`}>

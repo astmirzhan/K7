@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiRequestError, api, KEYS, onApiError } from '../../lib/api';
 import { authMessage, safeNext } from '../../lib/auth-client';
-import { localInputToIso, matchReason, nearbyLine, paywallCopy, planPrice } from '../../lib/format';
+import { localInputToIso, matchReason, nearbyLine, paywallCopy, planPrice, socialHandle } from '../../lib/format';
 import { reasonFromPath } from '../../lib/paywall';
 import { fitWithin } from '../../lib/photo';
 import { US_STATES } from '../../lib/types';
@@ -140,5 +140,18 @@ describe('avatar accessory sprites', () => {
         expect(row, `${name} colors`).toMatch(/^[.osSghwWkp]+$/);
       }
     }
+  });
+});
+
+describe('socialHandle', () => {
+  it('reads the handle from Instagram, X and LinkedIn links', () => {
+    expect(socialHandle('https://instagram.com/nqzmirzhan')).toBe('@nqzmirzhan');
+    expect(socialHandle('https://x.com/k7_app')).toBe('@k7_app');
+    expect(socialHandle('https://linkedin.com/in/sarah-k')).toBe('@sarah-k');
+  });
+  it('returns null without a usable handle', () => {
+    expect(socialHandle(null)).toBeNull();
+    expect(socialHandle('https://instagram.com/')).toBeNull();
+    expect(socialHandle('not a url')).toBeNull();
   });
 });
