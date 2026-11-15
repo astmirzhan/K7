@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Co-op race tests: both partners upload their photo at the same moment.
-# Expectation: no deadlocks, no stuck "waiting_partner", coins paid exactly once.
+# Co-op race tests (tagging): both partners post and tag each other at the same moment.
+# Expectation: the first post closes the co-op stage for both, the second gets STAGE_NOT_ACTIVE,
+# no deadlocks, nothing stuck in "waiting_partner", coins paid exactly once.
 set -euo pipefail
 URL="$1"
 q() { psql "$URL" -q -t -A -v ON_ERROR_STOP=1 -c "$1"; }
@@ -28,9 +29,11 @@ read -r X Y < <(setup_pair 0)
 psql "$URL" -q -t -A -v ON_ERROR_STOP=1 -c "begin; $(coop_sql "$X" "$Y") select pg_sleep(1.5); commit;" >/dev/null &
 S1=$!
 sleep 0.4
-OUT=$(psql "$URL" -q -t -A -v ON_ERROR_STOP=1 -c "$(coop_sql "$Y" "$X")")
+if OUT=$(psql "$URL" -q -t -A -v ON_ERROR_STOP=1 -c "$(coop_sql "$Y" "$X")" 2>&1); then
+  echo "FAIL interleaving: Y's stage was already closed by X's tag, expected STAGE_NOT_ACTIVE: $OUT"; exit 1
+fi
 wait $S1
-echo "$OUT" | grep -q '"waitingForPartner": false' || { echo "FAIL interleaving: second partner should finish both: $OUT"; exit 1; }
+echo "$OUT" | grep -q 'STAGE_NOT_ACTIVE' || { echo "FAIL interleaving: unexpected error: $OUT"; exit 1; }
 [ "$(q "select count(*) from roadmap_stages where interest_slug='running' and kind='coop' and status='done' and user_id in ('$X','$Y')")" = "2" ] \
   || { echo "FAIL interleaving: both stages must be done"; exit 1; }
 
@@ -42,16 +45,19 @@ for i in $(seq 1 $PAIRS); do
   psql "$URL" -q -t -A -v ON_ERROR_STOP=1 -c "$(coop_sql "${XS[i]}" "${YS[i]}")" >/dev/null 2>/tmp/k7_race_x_$i & PIDS+=($!)
   psql "$URL" -q -t -A -v ON_ERROR_STOP=1 -c "$(coop_sql "${YS[i]}" "${XS[i]}")" >/dev/null 2>/tmp/k7_race_y_$i & PIDS+=($!)
 done
-FAILED=0
-for p in "${PIDS[@]}"; do wait "$p" || FAILED=1; done
-if [ "$FAILED" = "1" ]; then echo "FAIL stress: a transaction errored:"; cat /tmp/k7_race_* ; exit 1; fi
-
+for p in "${PIDS[@]}"; do wait "$p" || true; done
+# the only acceptable error is the loser of a race finding its stage already closed
+if grep -h 'ERROR' /tmp/k7_race_* 2>/dev/null | grep -v 'STAGE_NOT_ACTIVE' | grep -q .; then
+  echo "FAIL stress: unexpected error (deadlock?):"; cat /tmp/k7_race_*; exit 1
+fi
+NOT_DONE=$(q "select count(*) from roadmap_stages where kind='coop' and interest_slug='running' and status <> 'done' and user_id in (select id from profiles where display_name ~ '^P[xy][0-9]+$')")
+[ "$NOT_DONE" = "0" ] || { echo "FAIL stress: $NOT_DONE co-op stages not done"; exit 1; }
 STUCK=$(q "select count(*) from roadmap_stages where kind='coop' and status='waiting_partner'")
 [ "$STUCK" = "0" ] || { echo "FAIL stress: $STUCK co-op stages stuck in waiting_partner"; exit 1; }
 BAD=$(q "select count(*) from profiles p where p.coins <> coalesce((select sum(amount) from coin_ledger l where l.user_id = p.id),0)")
 [ "$BAD" = "0" ] || { echo "FAIL stress: coins out of sync with ledger for $BAD users"; exit 1; }
-# every racer: 1 (stage1) + 1 (connect) + 2 (photo) + 1 (coop stage) + 1 (coop bonus) = 6
-WRONG=$(q "select count(*) from profiles where display_name like 'P%' and coins <> 6")
-[ "$WRONG" = "0" ] || { echo "FAIL stress: $WRONG racers have wrong coin totals"; exit 1; }
+# per pair: poster 1 + 1 + 2 photo + 1 stage + 1 bonus = 6, tagged buddy 1 + 1 + 1 stage + 1 bonus = 4
+WRONG=$(q "select count(*) from (select sum(coins) s from profiles where display_name ~ '^P[xy][0-9]+$' group by substring(display_name from 3)) t where s <> 10")
+[ "$WRONG" = "0" ] || { echo "FAIL stress: $WRONG pairs have wrong coin totals"; q "select substring(display_name from 3) pair, string_agg(display_name || '=' || coins, ' ' order by display_name) from profiles where display_name ~ '^P[xy][0-9]+$' group by 1 having sum(coins) <> 10"; exit 1; }
 rm -f /tmp/k7_race_*
 echo "CONCURRENCY PASSED ($PAIRS simultaneous pairs + interleaving)"
