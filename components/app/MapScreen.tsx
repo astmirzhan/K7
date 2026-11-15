@@ -1,6 +1,6 @@
 'use client';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { OnboardedGate } from '@/components/OnboardedGate';
 import { LockIcon } from '@/components/scene/Icons';
 import { Chip } from '@/components/ui/Chip';
@@ -9,7 +9,9 @@ import { EmptyState, ErrorState, PanelSkeleton, Skeleton } from '@/components/ui
 import { useMapStates, useMapUsers } from '@/lib/hooks';
 import { openPaywall } from '@/lib/paywall';
 import { US_STATES, type OnboardedMe, type UsState } from '@/lib/types';
-import { STATE_NAMES, US_TILE_GRID, US_TILES } from '@/lib/us';
+import { STATE_NAMES } from '@/lib/us';
+import { cityCoords } from '@/lib/us-cities';
+import { UsMap, type MapPin } from './UsMap';
 import { MatchCard } from './MatchCard';
 
 const isState = (v: string | null): v is UsState => !!v && (US_STATES as readonly string[]).includes(v);
@@ -39,10 +41,10 @@ function Inner({ me }: { me: OnboardedMe }) {
   const interest = params.get('interest');
   const selected: UsState = isState(stateParam) ? stateParam : me.state;
 
+  const [zoomed, setZoomed] = useState(true);
   const states = useMapStates();
   const users = useMapUsers(selected);
   const counts = useMemo(() => new Map((states.data ?? []).map((s) => [s.state, s.count])), [states.data]);
-  const max = Math.max(1, ...(states.data ?? []).map((s) => s.count));
 
   const items = useMemo(() => {
     const all = users.data?.items ?? [];
@@ -60,6 +62,13 @@ function Inner({ me }: { me: OnboardedMe }) {
   }
 
   const hidden = users.data?.hiddenCount ?? 0;
+  const pins: MapPin[] = items.map((c) => ({
+    id: c.user.userId,
+    name: `${c.user.displayName} · ${c.user.city}`,
+    avatar: c.user.avatar,
+    state: c.user.state,
+    coords: cityCoords(c.user.state, c.user.city),
+  }));
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_420px] lg:gap-6">
@@ -72,38 +81,45 @@ function Inner({ me }: { me: OnboardedMe }) {
         {states.error && !states.data ? (
           <ErrorState message={states.error.message} onRetry={() => void states.mutate()} />
         ) : (
-          <Panel tone="mist" shadow="md" className="p-2 md:p-4">
-            <div
-              role="grid"
-              aria-label="United States"
-              className="grid gap-[3px] md:gap-1.5"
-              style={{ gridTemplateColumns: `repeat(${US_TILE_GRID.cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${US_TILE_GRID.rows}, minmax(0, 1fr))` }}
-            >
-              {US_STATES.map((st) => {
-                const pos = US_TILES[st];
-                const n = counts.get(st) ?? 0;
-                const active = st === selected;
-                const mine = st === me.state;
-                const heat = n === 0 ? 'bg-white/60 text-ink/40' : n >= max * 0.6 ? 'bg-yellow' : n >= max * 0.25 ? 'bg-grass' : 'bg-[#e8f6d0]';
-                return (
-                  <button
-                    key={st}
-                    type="button"
-                    role="gridcell"
-                    aria-selected={active}
-                    aria-label={`${STATE_NAMES[st]}: ${n} ${n === 1 ? 'person' : 'people'}`}
-                    data-testid={`map-tile-${st}`}
-                    onClick={() => go({ state: st })}
-                    className={`pixelated flex aspect-square flex-col items-center justify-center rounded-[4px] border-[2px] border-ink transition-transform active:scale-95 md:rounded-[6px] md:border-[3px] ${
-                      active ? 'k7-bounce bg-ink text-yellow' : heat
-                    } ${mine && !active ? 'ring-2 ring-pink ring-offset-1 ring-offset-mist' : ''}`}
-                    style={{ gridRow: pos.row + 1, gridColumn: pos.col + 1 }}
-                  >
-                    <span className="font-display text-[12px] leading-none sm:text-[16px] md:text-[20px]">{n}</span>
-                    <span className="text-[7px] font-bold leading-none opacity-70 sm:text-[9px] md:text-[10px]">{st}</span>
-                  </button>
-                );
-              })}
+          <Panel tone="mist" shadow="md" className="relative overflow-hidden p-2 md:p-4">
+            <UsMap
+              counts={counts}
+              selected={selected}
+              myState={me.state}
+              zoomed={zoomed}
+              pins={pins}
+              onSelect={(st) => {
+                setZoomed(true);
+                go({ state: st });
+              }}
+              onPin={(id) => {
+                const el = document.querySelector(`[data-testid="match-card-${id}"]`);
+                el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el?.classList.add('k7-bounce');
+                window.setTimeout(() => el?.classList.remove('k7-bounce'), 400);
+              }}
+            />
+            <div className="absolute left-3 top-3 flex flex-wrap gap-2 md:left-5 md:top-5">
+              <Chip size="sm" active={!zoomed} onClick={() => setZoomed((z) => !z)} data-testid="map-zoom">
+                {zoomed ? 'US view' : `zoom to ${selected}`}
+              </Chip>
+              <label className="sr-only" htmlFor="map-state">State</label>
+              <select
+                id="map-state"
+                data-testid="map-state-select"
+                value={selected}
+                onChange={(e) => {
+                  setZoomed(true);
+                  go({ state: e.target.value as UsState });
+                }}
+                className="k7-label h-7 rounded-[8px] border-[3px] border-ink bg-white pl-2 pr-7 text-[10px]"
+              >
+                {US_STATES.map((st) => (
+                  <option key={st} value={st}>
+                    {STATE_NAMES[st]} · {counts.get(st) ?? 0}
+                  </option>
+                ))}
+              </select>
             </div>
             {states.isLoading && !states.data ? <p className="k7-label mt-2 text-center text-ink/60">Counting people…</p> : null}
           </Panel>

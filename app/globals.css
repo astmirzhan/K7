@@ -248,3 +248,15 @@ select {
   background-size: 6px 6px, 6px 6px;
   background-repeat: no-repeat;
 }
+
+/* map pins pop in when a state opens */
+.k7-pin {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: k7-pop 260ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .k7-pin {
+    animation: none;
+  }
+}
