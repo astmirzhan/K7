@@ -1,6 +1,7 @@
 import 'server-only';
 import type { Interest } from '../types';
 import { AppError } from './errors';
+import { suggestedSlugFor } from '../goal-synonyms';
 import { normalizeGoalName } from './goal-name';
 import { interestCatalog, invalidateCatalog } from './roadmap/read';
 import { adminClient } from './supabase';
@@ -14,6 +15,9 @@ export async function findOrCreateGoal(raw: string): Promise<Interest> {
   if (!goal) throw new AppError('VALIDATION', 'Use letters, numbers and spaces');
 
   const catalog = await interestCatalog();
+  // "Read books" means Reading: land on the suggested goal so people still match on the map
+  const synonym = suggestedSlugFor(goal.name);
+  if (synonym && catalog.get(synonym)) return catalog.get(synonym)!;
   const byName = [...catalog.values()].find((i) => i.name.toLowerCase() === goal.name.toLowerCase());
   const existing = catalog.get(goal.slug) ?? byName;
   if (existing) return existing;
