@@ -43,8 +43,11 @@ function Inner({ me }: { me: OnboardedMe }) {
     <div className="mx-auto flex w-full max-w-[560px] flex-col gap-4">
       <Panel className="flex flex-col gap-4 p-5 md:p-6">
         <div className="flex items-center gap-4">
-          <div className="k7-outline rounded-[14px] bg-[#e8f6d0] p-2">
-            <Ninja avatar={me.avatar} size={72} />
+          <div className="flex flex-col items-center gap-1">
+            <div className="k7-outline rounded-[14px] bg-[#e8f6d0] p-2">
+              <Ninja avatar={me.avatar} size={72} />
+            </div>
+            {me.avatar.name ? <span className="k7-label max-w-[96px] truncate text-[9px] text-ink/70" data-testid="ninja-name">{me.avatar.name}</span> : null}
           </div>
           <div className="min-w-0 flex-1">
             <h1 className="font-display text-[36px] leading-none">{me.displayName}</h1>

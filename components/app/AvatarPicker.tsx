@@ -2,6 +2,7 @@
 import { Ninja, PRESET_COLORS } from '@/components/scene/Ninja';
 import { PlusIcon } from '@/components/scene/Icons';
 import { AVATAR_ACCESSORIES, AVATAR_PRESETS, type Avatar } from '@/lib/types';
+import { Field, Input } from '@/components/ui/Field';
 
 // 02 Choose your ninja: 4 preset tiles + "yours" builder.
 const SUITS = ['#3f8f4a', '#2e1b5b', '#3b6fd6', '#8b5ad6', '#d84b6a', '#2f6b45'];
@@ -12,6 +13,9 @@ export function AvatarPicker({ value, onChange }: { value: Avatar | null; onChan
   const custom: Extract<Avatar, { kind: 'custom' }> =
     value?.kind === 'custom' ? value : { kind: 'custom', suit: SUITS[4]!, band: BANDS[0]!, accessory: 'none' };
   const isCustom = value?.kind === 'custom';
+  const name = value?.name ?? '';
+  // switching tiles keeps the name the person already typed
+  const withName = (a: Avatar): Avatar => (name ? { ...a, name } : a);
 
   return (
     <div className="flex flex-col items-center gap-6">
@@ -24,7 +28,7 @@ export function AvatarPicker({ value, onChange }: { value: Avatar | null; onChan
                 type="button"
                 data-testid={`avatar-${preset}`}
                 aria-pressed={active}
-                onClick={() => onChange({ kind: 'preset', preset })}
+                onClick={() => onChange(withName({ kind: 'preset', preset }))}
                 className={`flex h-[132px] w-[132px] items-center justify-center rounded-[14px] border-4 transition-transform hover:-translate-y-0.5 ${TILE_BG[preset]} ${
                   active ? 'border-yellow shadow-[0_0_0_4px_var(--color-ink)] scale-[1.03]' : 'border-ink'
                 }`}
@@ -42,7 +46,7 @@ export function AvatarPicker({ value, onChange }: { value: Avatar | null; onChan
             type="button"
             data-testid="avatar-custom"
             aria-pressed={isCustom}
-            onClick={() => onChange(custom)}
+            onClick={() => onChange(withName(custom))}
             className={`flex h-[132px] w-[132px] items-center justify-center rounded-[14px] border-4 border-dashed bg-mist transition-transform hover:-translate-y-0.5 ${
               isCustom ? 'border-yellow shadow-[0_0_0_4px_var(--color-ink)]' : 'border-ink'
             }`}
@@ -52,6 +56,27 @@ export function AvatarPicker({ value, onChange }: { value: Avatar | null; onChan
           <span className={`k7-label rounded-[8px] border-[3px] border-ink px-2.5 py-1 ${isCustom ? 'bg-ink text-yellow' : 'bg-white text-ink'}`}>Yours</span>
         </div>
       </div>
+
+      {value ? (
+        <div className="w-full max-w-[420px]">
+          <Field label="Name your ninja" htmlFor="ninja-name" hint="Optional. Shown on your profile and level cards.">
+            <Input
+              id="ninja-name"
+              data-testid="avatar-name"
+              maxLength={20}
+              placeholder={value.kind === 'preset' ? PRESET_COLORS[value.preset]!.name : 'Shadow Fox'}
+              value={name}
+              onChange={(e) => {
+                const v = e.target.value.slice(0, 20);
+                const next: Avatar = { ...value, name: v };
+                if (!v.trim()) delete next.name;
+                onChange(next);
+              }}
+              className="bg-white"
+            />
+          </Field>
+        </div>
+      ) : null}
 
       {isCustom ? (
         <div className="k7-outline k7-shadow-sm grid w-full max-w-[760px] gap-5 rounded-[14px] bg-white p-5 sm:grid-cols-[180px_1fr]">
