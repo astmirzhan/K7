@@ -100,6 +100,7 @@ Email + password, min 8 characters. No email confirmation step exists.
 | `api.*` | HTTP | Request → Response | Used on | Local errors | After success |
 | --- | --- | --- | --- | --- | --- |
 | `interests()` | `GET /api/interests` (public) | — → `Interest[]` | Onboarding step 2 | — | — |
+| `stats()` / `usePublicStats` | `GET /api/stats` (public) | — → `PublicStats` | Landing counter | — | — |
 | `me()` / `useMe` | `GET /api/me` | — → `Me` | everywhere (gate, header, home, profile) | — | — |
 | `onboarding(body)` | `POST /api/onboarding` | `OnboardingRequest` → `OnboardingResponse` | Onboarding submit | `VALIDATION` (field errors), `ALREADY_ONBOARDED` → `/home` | `invalidate.afterOnboarding(res.me, res.roadmap)` |
 | `roadmap()` / `useRoadmap` | `GET /api/roadmap` | — → `Level[]` | Roadmap, Home | — | — |

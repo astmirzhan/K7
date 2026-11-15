@@ -2,7 +2,7 @@
 import useSWR, { mutate } from 'swr';
 import { fetcher, KEYS } from './api';
 import type {
-  ConnectionsResponse, FeedItem, Interest, Level, MapStateCount, MapUsersResponse, Me, Meetup, UsState,
+  ConnectionsResponse, FeedItem, Interest, Level, MapStateCount, MapUsersResponse, Me, Meetup, PublicStats, UsState,
 } from './types';
 
 const POLL_ME_MS = 20_000;        // pendingIncoming badge, coins
@@ -11,6 +11,8 @@ const POLL_PEOPLE_MS = 15_000;    // on the People screen
 
 export const useMe = () => useSWR<Me>(KEYS.me, fetcher, { refreshInterval: POLL_ME_MS });
 export const useInterests = () => useSWR<Interest[]>(KEYS.interests, fetcher, { revalidateOnFocus: false });
+/** Public landing counter. */
+export const usePublicStats = () => useSWR<PublicStats>(KEYS.stats, fetcher, { revalidateOnFocus: false });
 
 /** Polls fast while any stage is waiting for a partner, so the "both done" reveal appears by itself. */
 export function useRoadmap() {

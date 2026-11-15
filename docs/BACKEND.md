@@ -239,7 +239,7 @@ Levels above the plan are visible with a lock (`Level.lockedByPlan`, `requiredPl
 
 ---
 
-## 8. API (all JSON; all routes except health/interests/webhook require auth)
+## 8. API (all JSON; all routes except health/interests/stats/webhook require auth)
 
 Every route: `route()` wrapper → `requireUser` → Zod (`parseJson` / `parseQuery` / `parseWith`) → SQL function or queries → typed response. Use the reference route as the template.
 
@@ -247,8 +247,9 @@ Every route: `route()` wrapper → `requireUser` → Zod (`parseJson` / `parseQu
 | --- | --- | --- | --- | --- |
 | 1 | `GET /api/health` | — | `{ ok, interests }` | 503 if DB down. Used by smoke test |
 | 2 | `GET /api/interests` | — | `Interest[]` | public, sorted by category then name |
+| 2a | `GET /api/stats` | — | `PublicStats` | public landing counter: people, states, cities, top 5 states. Aggregates only, no names or ids |
 | 3 | `GET /api/me` | — | `Me` | `onboarded:false` if no profile |
-| 4 | `POST /api/onboarding` | `onboardingSchema` | `OnboardingResponse` | slugs must exist (VALIDATION); `buildRoadmapRows` (3 AI calls in parallel, 8 s timeout each, template fallback) → `create_onboarding`; 409 `ALREADY_ONBOARDED` |
+| 4 | `POST /api/onboarding` | `onboardingSchema` | `OnboardingResponse` | slugs must exist (VALIDATION); `buildRoadmapRows` (one AI call for all 3 levels, Gemini or Anthropic, 12 s timeout, template fallback per level) → `create_onboarding`; 409 `ALREADY_ONBOARDED` |
 | 5 | `GET /api/roadmap` | — | `Level[]` | `loadLevels(user, plan)` |
 | 6 | `POST /api/stages/[id]/upload-url` | — | `UploadUrlResponse` | stage mine; kind `solo`/`coop`; status `active` (or `waiting_partner` for coop); plan allows (402 + requiredPlan) |
 | 7 | `POST /api/stages/[id]/complete` | `completeStageSchema` | `CompleteStageResponse` | **exists**. Photo must exist in Storage |

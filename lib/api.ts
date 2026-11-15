@@ -4,7 +4,7 @@ import type {
   ApiError, ApiErrorCode, BlockRequest, CheckoutRequest, CheckoutResponse, CompleteStageRequest,
   CompleteStageResponse, ConfirmCheckoutRequest, ConfirmCheckoutResponse, Connection, ConnectionsResponse,
   CreateConnectionRequest, CreateMeetupRequest, FeedItem, Interest, Level, MapStateCount, MapUsersResponse,
-  Me, Meetup, OkResponse, OnboardingRequest, OnboardingResponse, PaidPlan, ReportRequest,
+  Me, Meetup, OkResponse, OnboardingRequest, OnboardingResponse, PaidPlan, PublicStats, ReportRequest,
   RespondConnectionRequest, UpdateMeetupRequest, UploadUrlResponse, UsState,
 } from './types';
 
@@ -100,6 +100,7 @@ export const fetcher = <T>(path: string) => request<T>('GET', path);
 export const KEYS = {
   me: '/api/me',
   interests: '/api/interests',
+  stats: '/api/stats',
   roadmap: '/api/roadmap',
   mapStates: '/api/map/states',
   mapUsers: (state: UsState) => `/api/map/users?state=${state}`,
@@ -113,6 +114,7 @@ const id = (v: string) => encodeURIComponent(v);
 export const api = {
   health: () => request<{ ok: boolean; interests: number }>('GET', '/api/health'),
   interests: () => request<Interest[]>('GET', KEYS.interests),
+  stats: () => request<PublicStats>('GET', KEYS.stats),
   me: () => request<Me>('GET', KEYS.me),
   onboarding: (body: OnboardingRequest) => request<OnboardingResponse>('POST', '/api/onboarding', body),
 

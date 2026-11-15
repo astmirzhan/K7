@@ -150,6 +150,13 @@ export interface MapUsersResponse {
   hiddenCount: number; // people in this state hidden by the Free limit
 }
 
+export interface PublicStats {
+  people: number;   // onboarded profiles
+  states: number;   // states with at least one person
+  cities: number;
+  top: MapStateCount[]; // up to 5 states, most people first
+}
+
 // ---------- Connections & meetups ----------
 export interface Connection {
   id: string;
