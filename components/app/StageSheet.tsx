@@ -10,7 +10,7 @@ import { DifficultyBadge } from '@/components/ui/DifficultyBadge';
 import { Field, Input } from '@/components/ui/Field';
 import { Modal } from '@/components/ui/Modal';
 import { api, ApiRequestError } from '@/lib/api';
-import { DIFFICULTY_LABEL, PLAN_LABEL, planPrice } from '@/lib/format';
+import { DIFFICULTY_LABEL, PLAN_LABEL, planPrice, socialHandle } from '@/lib/format';
 import { invalidate, useConnections } from '@/lib/hooks';
 import { openPaywall } from '@/lib/paywall';
 import { uploadStagePhoto } from '@/lib/photo';
@@ -241,10 +241,13 @@ function Body({
                     data-testid={`partner-option-${c.other.userId}`}
                     aria-pressed={partnerId === c.other.userId}
                     onClick={() => setPartnerId(c.other.userId)}
-                    className={`k7-label flex h-10 items-center gap-2 rounded-[8px] border-[3px] border-ink pl-1 pr-3 ${partnerId === c.other.userId ? 'bg-ink text-yellow' : 'bg-white'}`}
+                    className={`k7-label flex min-h-10 items-center gap-2 rounded-[8px] border-[3px] border-ink py-1 pl-1 pr-3 ${partnerId === c.other.userId ? 'bg-ink text-yellow' : 'bg-white'}`}
                   >
                     <AvatarTile avatar={c.other.avatar} size={28} />
                     {c.other.displayName}
+                    {socialHandle(c.socialUrl) ? (
+                      <span className="font-body text-[12px] normal-case opacity-70">{socialHandle(c.socialUrl)}</span>
+                    ) : null}
                   </button>
                 ))}
               </div>
