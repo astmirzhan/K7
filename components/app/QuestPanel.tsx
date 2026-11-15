@@ -103,7 +103,7 @@ export function QuestPanel({
         find a partner
       </ButtonLink>
 
-      <p className="text-[13px] text-ink/70">Skipping a day never resets your path.</p>
+      <p className="text-[13px] text-ink/70">No streaks to lose: your progress stays where you left it.</p>
       {me.pendingIncoming > 0 ? (
         <Link href="/people" className="flex items-center gap-2 text-[13px] font-semibold text-ink underline underline-offset-4">
           <Coin size={14} /> {me.pendingIncoming} new connect request{me.pendingIncoming > 1 ? 's' : ''}
