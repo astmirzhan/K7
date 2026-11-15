@@ -168,5 +168,9 @@ describe('badge credentials', () => {
     expect(url.searchParams.get('organizationName')).toBe('K7');
     expect(url.searchParams.get('certId')).toBe(id);
     expect(url.searchParams.get('issueMonth')).toBe('11');
+    // with a Company Page id LinkedIn shows the K7 logo
+    const withOrg = new URL(linkedinAddUrl({ name: 'x', certId: id, certUrl: 'https://k7.app', issued: new Date(), orgId: '123456' }));
+    expect(withOrg.searchParams.get('organizationId')).toBe('123456');
+    expect(withOrg.searchParams.has('organizationName')).toBe(false);
   });
 });

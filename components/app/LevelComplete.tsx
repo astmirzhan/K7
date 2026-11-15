@@ -47,7 +47,11 @@ export function LevelComplete({
   earned.add(d);
 
   function addToLinkedin() {
-    window.open(linkedinAddUrl({ name: title, certId, certUrl: window.location.origin, issued }), '_blank', 'noopener,noreferrer');
+    window.open(
+      linkedinAddUrl({ name: title, certId, certUrl: window.location.origin, issued, orgId: process.env.NEXT_PUBLIC_LINKEDIN_ORG_ID || undefined }),
+      '_blank',
+      'noopener,noreferrer',
+    );
   }
 
   /** Transparent 1080×1920 PNG: "LEVEL COMPLETE", the badge, the goal and the credential. */
