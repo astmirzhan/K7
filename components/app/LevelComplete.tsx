@@ -27,7 +27,16 @@ export function LevelComplete({
   onNext: () => void;
 }) {
   const badgeRef = useRef<HTMLDivElement>(null);
-  const [busy, setBusy] = useState(false);
+  const [storyFile, setStoryFile] = useState<File | null>(null);
+  // build the story image as soon as the badge is on screen
+  useEffect(() => {
+    let alive = true;
+    void makeStoryFile().then((f) => alive && f && setStoryFile(f));
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -46,24 +55,16 @@ export function LevelComplete({
   const earned = earnedBadges(levels);
   earned.add(d);
 
-  function addToLinkedin() {
-    window.open(
-      linkedinAddUrl({ name: title, certId, certUrl: window.location.origin, issued, orgId: process.env.NEXT_PUBLIC_LINKEDIN_ORG_ID || undefined }),
-      '_blank',
-      'noopener,noreferrer',
-    );
-  }
-
-  /** Transparent 1080×1920 PNG: "LEVEL COMPLETE", the badge, the goal and the credential. */
-  async function instagramStory() {
+  async function makeStoryFile(): Promise<File | null> {
     const svg = badgeRef.current?.querySelector('svg');
-    if (!svg) return;
-    setBusy(true);
+    if (!svg) return null;
     try {
+      await document.fonts?.ready;
       const canvas = document.createElement('canvas');
       canvas.width = 1080;
       canvas.height = 1920;
-      const ctx = canvas.getContext('2d')!;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
       const css = getComputedStyle(document.documentElement);
       const display = css.getPropertyValue('--font-display').trim() || 'monospace';
       const label = css.getPropertyValue('--font-label').trim() || 'monospace';
@@ -92,23 +93,43 @@ export function LevelComplete({
       ctx.fillStyle = '#ffc803';
       ctx.textAlign = 'center';
       ctx.fillText(`K7 · ${certId}`, 540, 1540);
-      const blob: Blob = await new Promise((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('Could not make the image'))), 'image/png'));
-      const file = new File([blob], `k7-${badge.title.toLowerCase().replace(' ', '-')}.png`, { type: 'image/png' });
+      const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/png'));
+      return blob ? new File([blob], `k7-${badge.title.toLowerCase().replace(' ', '-')}.png`, { type: 'image/png' }) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function addToLinkedin() {
+    window.open(
+      linkedinAddUrl({ name: title, certId, certUrl: window.location.origin, issued, orgId: process.env.NEXT_PUBLIC_LINKEDIN_ORG_ID || undefined }),
+      '_blank',
+      'noopener,noreferrer',
+    );
+  }
+
+  /**
+   * iPhone Safari only opens the share sheet straight from a tap, so the story PNG is made ahead of time
+   * (when this screen opens) and the tap shares the ready file at once.
+   */
+  async function shareStory() {
+    const file = storyFile ?? (await makeStoryFile());
+    if (!file) return toast('Could not make the story image. Try again.', { tone: 'error' });
+    try {
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: badge.title });
-      } else {
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(file);
-        a.download = file.name;
-        a.click();
-        URL.revokeObjectURL(a.href);
-        toast('Story image saved. Post it from your gallery.', { tone: 'success' });
+        return;
       }
     } catch (e) {
-      if ((e as Error).name !== 'AbortError') toast('Could not make the story image. Try again.', { tone: 'error' });
-    } finally {
-      setBusy(false);
+      if ((e as Error).name === 'AbortError') return; // closed the share sheet
     }
+    // no file sharing (desktop browsers): save the PNG, then post it from the gallery
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(file);
+    a.download = file.name;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast('Story image saved. Open Instagram, add a story and pick it from your gallery.', { tone: 'success', ms: 6000 });
   }
 
   return createPortal(
@@ -142,7 +163,7 @@ export function LevelComplete({
           <Button onClick={addToLinkedin} data-testid="add-to-linkedin">
             add to linkedin
           </Button>
-          <Button variant="secondary" pending={busy} onClick={() => void instagramStory()} data-testid="instagram-story">
+          <Button variant="secondary" pending={!storyFile} onClick={() => void shareStory()} data-testid="instagram-story">
             instagram story
           </Button>
           <Button variant="secondary" onClick={onNext}>
