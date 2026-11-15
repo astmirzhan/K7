@@ -19,6 +19,7 @@ function loadEnvLocal() {
 loadEnvLocal();
 // API tests assert template roadmaps; the webServer inherits this env.
 process.env.ANTHROPIC_API_KEY = '';
+process.env.GEMINI_API_KEY = '';
 
 export default defineConfig({
   timeout: 90_000,
