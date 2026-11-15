@@ -7,6 +7,7 @@ import { BADGES, NinjaBadge } from '@/components/scene/NinjaBadge';
 import { Button } from '@/components/ui/Button';
 import { credentialId, K7_LINKEDIN_ORG_ID, linkedinAddUrl } from '@/lib/credential';
 import { DIFFICULTY_LABEL } from '@/lib/format';
+import { lockScroll } from '@/lib/scroll-lock';
 import { toast } from '@/lib/toast';
 import type { Avatar, Difficulty, Level } from '@/lib/types';
 import { earnedBadges } from './BadgeShelf';
@@ -37,13 +38,7 @@ export function LevelComplete({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, []);
+  useEffect(() => lockScroll(), []);
   if (typeof document === 'undefined') return null;
 
   const d = level.difficulty;
