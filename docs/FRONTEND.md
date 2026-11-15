@@ -100,6 +100,7 @@ Email + password, min 8 characters. No email confirmation step exists.
 | `api.*` | HTTP | Request → Response | Used on | Local errors | After success |
 | --- | --- | --- | --- | --- | --- |
 | `interests()` | `GET /api/interests` (public) | — → `Interest[]` | Onboarding step 2 | — | — |
+| `stats()` / `usePublicStats` | `GET /api/stats` (public) | — → `PublicStats` | Landing counter | — | — |
 | `me()` / `useMe` | `GET /api/me` | — → `Me` | everywhere (gate, header, home, profile) | — | — |
 | `onboarding(body)` | `POST /api/onboarding` | `OnboardingRequest` → `OnboardingResponse` | Onboarding submit | `VALIDATION` (field errors), `ALREADY_ONBOARDED` → `/home` | `invalidate.afterOnboarding(res.me, res.roadmap)` |
 | `roadmap()` / `useRoadmap` | `GET /api/roadmap` | — → `Level[]` | Roadmap, Home | — | — |
@@ -110,6 +111,7 @@ Email + password, min 8 characters. No email confirmation step exists.
 | `connect(body)` | `POST /api/connections` | `CreateConnectionRequest` → `Connection` | Match card | `ALREADY_CONNECTED` (revalidate), `NO_SHARED_INTEREST`, `NOT_FOUND` | `invalidate.afterConnect()` |
 | `connections()` / `useConnections` | `GET /api/connections` | — → `ConnectionsResponse` | People, co-op partner picker | — | — |
 | `respondConnection(id, body)` | `PATCH /api/connections/:id` | `RespondConnectionRequest` → `Connection` | People incoming, match card | `INVALID_STATE`, `FORBIDDEN` | `invalidate.afterRespond()` |
+| `icebreaker(id)` | `POST /api/connections/:id/icebreaker` | — → `IcebreakerResponse` | People → buddy → AI icebreaker sheet | `INVALID_STATE`, `NOT_FOUND` (402 opens the paywall globally) | — |
 | `meetups()` / `useMeetups` | `GET /api/meetups` | — → `Meetup[]` | People | — | — |
 | `proposeMeetup(body)` | `POST /api/meetups` | `CreateMeetupRequest` → `Meetup` | People → buddy | `VALIDATION` (time in past, place), `NOT_FOUND` | `invalidate.afterMeetup()` |
 | `updateMeetup(id, body)` | `PATCH /api/meetups/:id` | `UpdateMeetupRequest` → `Meetup` | People → meetup | `INVALID_STATE` | `invalidate.afterMeetup()` |

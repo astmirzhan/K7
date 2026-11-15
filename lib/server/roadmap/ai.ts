@@ -66,6 +66,51 @@ export function parseAiStages(text: string, difficulty: Difficulty): StageDraft[
   return parsed.data.stages;
 }
 
+/** One prompt for all of a user's levels (one model call per onboarding instead of three). */
+export function buildCombinedPrompt(ctxs: RoadmapContext[]): string {
+  const sections = ctxs.map((ctx, n) => {
+    const kinds = STAGE_SKELETON[ctx.difficulty];
+    const plan = kinds.map((k, i) => `   ${i + 1}. ${k}: ${KIND_RULE[k]}`).join('\n');
+    return [`Level ${n + 1}: "${ctx.interestName}" (${ctx.category}), ${LEVEL[ctx.difficulty]}, exactly ${kinds.length} stages in this order:`, plan].join('\n');
+  });
+  const first = ctxs[0]!;
+  return [
+    `You design short quest roadmaps for an adult (25-45) in ${first.city}, ${first.state} who is starting ${ctxs.length} goals.`,
+    ...sections,
+    ``,
+    `Rules for every level:`,
+    `- Beginner-friendly, safe, legal, cheap. Public places only for meetups. No medical or financial claims.`,
+    `- Each stage builds on the previous one. Make it specific to that goal and to ${first.city} where it fits, not generic.`,
+    `- title: imperative, max 50 characters. description: max 160 characters, motivating, second person.`,
+    `- minutes: integer 5-60. steps: 3 to 5 concrete micro-actions, max 80 characters each.`,
+    `- Meeting style of the user: ${first.meetStyle}.`,
+    ``,
+    `Reply with JSON only, no prose, no markdown fences, levels in the same order as above:`,
+    `{"levels":[{"stages":[{"title":"...","description":"...","minutes":15,"steps":["...","...","..."]}]}]}`,
+  ].join('\n');
+}
+
+/** Parses a combined reply. Each level is validated on its own: a bad level is null (template fallback). */
+export function parseAiLevels(text: string, difficulties: Difficulty[]): Array<StageDraft[] | null> {
+  const none = difficulties.map(() => null);
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start < 0 || end <= start) return none;
+  let json: unknown;
+  try {
+    json = JSON.parse(text.slice(start, end + 1));
+  } catch {
+    return none;
+  }
+  const levels = (json as { levels?: unknown })?.levels;
+  if (!Array.isArray(levels)) return none;
+  return difficulties.map((d, i) => {
+    const parsed = aiSchema.safeParse(levels[i]);
+    if (!parsed.success || parsed.data.stages.length !== STAGE_SKELETON[d].length) return null;
+    return parsed.data.stages;
+  });
+}
+
 export type AiProvider = 'gemini' | 'anthropic';
 
 /** Gemini when GEMINI_API_KEY is set, else Anthropic when ANTHROPIC_API_KEY is set, else none (templates). */
@@ -81,14 +126,14 @@ export function geminiText(body: unknown): string {
   return Array.isArray(parts) ? parts.map((p) => p.text ?? '').join('') : '';
 }
 
-async function callGemini(prompt: string, apiKey: string, timeoutMs: number): Promise<string | null> {
+async function callGemini(prompt: string, apiKey: string, timeoutMs: number, maxTokens: number): Promise<string | null> {
   const model = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
     method: 'POST',
     headers: { 'x-goog-api-key': apiKey, 'content-type': 'application/json' },
     body: JSON.stringify({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 2000, temperature: 0.7 },
+      generationConfig: { responseMimeType: 'application/json', maxOutputTokens: maxTokens, temperature: 0.7 },
     }),
     signal: AbortSignal.timeout(timeoutMs),
   });
@@ -99,13 +144,13 @@ async function callGemini(prompt: string, apiKey: string, timeoutMs: number): Pr
   return geminiText(await res.json());
 }
 
-async function callAnthropic(prompt: string, apiKey: string, timeoutMs: number): Promise<string | null> {
+async function callAnthropic(prompt: string, apiKey: string, timeoutMs: number, maxTokens: number): Promise<string | null> {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({
       model: process.env.LLM_MODEL || 'claude-haiku-5-5',
-      max_tokens: 2000,
+      max_tokens: maxTokens,
       messages: [{ role: 'user', content: prompt }],
     }),
     signal: AbortSignal.timeout(timeoutMs),
@@ -118,19 +163,36 @@ async function callAnthropic(prompt: string, apiKey: string, timeoutMs: number):
   return (body.content ?? []).filter((c) => c.type === 'text').map((c) => c.text ?? '').join('');
 }
 
-/** One model call (Gemini or Anthropic). Returns null on missing key, timeout, HTTP error or bad JSON. */
-export async function generateAiStages(ctx: RoadmapContext, timeoutMs = 8000): Promise<StageDraft[] | null> {
+/** Raw text from the configured model (Gemini first, then Anthropic); null when no key is set. */
+export async function callModel(prompt: string, timeoutMs: number, maxTokens: number): Promise<string | null> {
   const provider = pickAiProvider(process.env);
   if (!provider) return null;
+  return provider === 'gemini'
+    ? callGemini(prompt, process.env.GEMINI_API_KEY!, timeoutMs, maxTokens)
+    : callAnthropic(prompt, process.env.ANTHROPIC_API_KEY!, timeoutMs, maxTokens);
+}
+
+/** One model call (Gemini or Anthropic) for one level. Returns null on missing key, timeout, HTTP error or bad JSON. */
+export async function generateAiStages(ctx: RoadmapContext, timeoutMs = 8000): Promise<StageDraft[] | null> {
+  if (!pickAiProvider(process.env)) return null;
   try {
-    const prompt = buildRoadmapPrompt(ctx);
-    const text =
-      provider === 'gemini'
-        ? await callGemini(prompt, process.env.GEMINI_API_KEY!, timeoutMs)
-        : await callAnthropic(prompt, process.env.ANTHROPIC_API_KEY!, timeoutMs);
+    const text = await callModel(buildRoadmapPrompt(ctx), timeoutMs, 2000);
     return text ? parseAiStages(text, ctx.difficulty) : null;
   } catch (e) {
     console.warn('[ai] roadmap failed, using template', (e as Error).name);
     return null;
+  }
+}
+
+/** One model call for all levels. Per level: drafts, or null to fall back to the template. */
+export async function generateAiRoadmap(ctxs: RoadmapContext[], timeoutMs = 12000): Promise<Array<StageDraft[] | null>> {
+  const none = ctxs.map(() => null);
+  if (ctxs.length === 0 || !pickAiProvider(process.env)) return none;
+  try {
+    const text = await callModel(buildCombinedPrompt(ctxs), timeoutMs, 6000);
+    return text ? parseAiLevels(text, ctxs.map((c) => c.difficulty)) : none;
+  } catch (e) {
+    console.warn('[ai] roadmap failed, using templates', (e as Error).name);
+    return none;
   }
 }

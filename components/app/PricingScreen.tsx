@@ -11,7 +11,8 @@ import { PLAN_LABEL, planPrice } from '@/lib/format';
 import { PAID_PLANS, PLAN_RULES } from '@/lib/server/plans';
 import { toast } from '@/lib/toast';
 import type { OnboardedMe, PaidPlan, Plan } from '@/lib/types';
-import { PLAN_FEATURES, startCheckout } from './PaywallSheet';
+import { PLAN_FEATURES } from '@/lib/plan-features';
+import { startCheckout } from './PaywallSheet';
 
 const ORDER: Plan[] = ['free', 'starter', 'pro', 'crew'];
 const TAGLINE: Record<Plan, string> = {

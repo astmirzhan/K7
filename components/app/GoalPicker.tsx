@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Coin } from '@/components/scene/Coin';
 import { CrossIcon } from '@/components/scene/Icons';
 import { Chip } from '@/components/ui/Chip';
+import { Input } from '@/components/ui/Field';
 import { DIFFICULTY_TONE } from '@/components/ui/DifficultyBadge';
 import { Skeleton } from '@/components/ui/States';
 import type { Difficulty, Interest } from '@/lib/types';
@@ -28,6 +29,7 @@ export function GoalPicker({
   error?: string | null;
 }) {
   const [showAll, setShowAll] = useState(false);
+  const [query, setQuery] = useState('');
   const bySlug = new Map((interests ?? []).map((i) => [i.slug, i]));
   const taken = new Set(value.map((v) => v.slug));
 
@@ -49,10 +51,24 @@ export function GoalPicker({
   }
 
   const list = interests ?? [];
-  const shown = showAll ? list : list.slice(0, VISIBLE);
+  const q = query.trim().toLowerCase();
+  // picked goals stay visible so they can be un-picked; a query searches the whole catalog by name or category
+  const matches = q ? list.filter((i) => i.name.toLowerCase().includes(q) || i.category.includes(q) || taken.has(i.slug)) : list;
+  const shown = q || showAll ? matches : matches.slice(0, VISIBLE);
 
   return (
     <div className="flex flex-col items-center gap-6">
+      <div className="w-full max-w-[420px]">
+        <Input
+          type="search"
+          aria-label="Search goals"
+          data-testid="goal-search"
+          placeholder="Search 30 goals: yoga, chess, piano…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="bg-white text-center"
+        />
+      </div>
       <div className="flex max-w-[960px] flex-wrap justify-center gap-2">
         {!interests
           ? Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-9 w-24" />)
@@ -62,7 +78,10 @@ export function GoalPicker({
                 {i.name}
               </Chip>
             ))}
-        {interests && list.length > VISIBLE ? (
+        {interests && q && matches.length === 0 ? (
+          <p className="text-[14px] text-ink/70">No goal called “{query.trim()}” yet. Try a close one, like running or drawing.</p>
+        ) : null}
+        {interests && !q && list.length > VISIBLE ? (
           <Chip onClick={() => setShowAll((s) => !s)}>{showAll ? 'fewer' : `+ ${list.length - VISIBLE} more`}</Chip>
         ) : null}
       </div>

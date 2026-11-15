@@ -9,7 +9,7 @@ export default function NotFound() {
         <Panel className="w-full max-w-[480px] p-8 text-center">
           <p className="k7-title text-[96px]">404</p>
           <h1 className="font-display mt-2 text-[36px] leading-none">this path isn’t on the map</h1>
-          <p className="mt-3 text-[14px] text-ink/70">Missing a day doesn’t reset your path — neither does a wrong turn.</p>
+          <p className="mt-3 text-[14px] text-ink/70">A wrong turn doesn’t cost you anything. Your progress is saved.</p>
           <ButtonLink href="/home" className="mt-6">
             back to the map
           </ButtonLink>

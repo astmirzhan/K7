@@ -33,6 +33,7 @@ function Inner({ me }: { me: OnboardedMe }) {
   const meetups = useMeetups();
   const [tab, setTab] = useState<Tab>('requests');
   const [propose, setPropose] = useState<Connection | null>(null);
+  const [icebreak, setIcebreak] = useState<Connection | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const interestName = (slug: string) => me.interests.find((i) => i.interest.slug === slug)?.interest.name ?? slug;
 
@@ -161,6 +162,9 @@ function Inner({ me }: { me: OnboardedMe }) {
                 <Button size="sm" onClick={() => setPropose(c)} data-testid={`propose-meetup-${c.id}`}>
                   propose a meetup
                 </Button>
+                <Button size="sm" variant="ink" onClick={() => setIcebreak(c)} data-testid={`icebreaker-${c.id}`}>
+                  AI icebreaker{me.limits.aiSteps ? '' : ' · Pro'}
+                </Button>
                 <Button size="sm" variant="ghost" pending={busyId === c.id} onClick={() => block(c)} className="ml-auto text-danger">
                   block
                 </Button>
@@ -180,6 +184,7 @@ function Inner({ me }: { me: OnboardedMe }) {
       <p className="text-[12px] text-ink/60">Meet in public places. Your social link opens only after you both accept.</p>
 
       {propose ? <ProposeMeetup c={propose} interestName={interestName} onClose={() => setPropose(null)} /> : null}
+      {icebreak ? <Icebreaker c={icebreak} onClose={() => setIcebreak(null)} /> : null}
       <ButtonLink href="/map" variant="secondary" className="w-fit">
         find more people
       </ButtonLink>
@@ -298,6 +303,76 @@ function ProposeMeetup({ c, interestName, onClose }: { c: Connection; interestNa
         {errors.form ? <p role="alert" className="text-[13px] font-semibold text-danger">{errors.form}</p> : null}
         <Button type="submit" pending={busy}>propose</Button>
       </form>
+    </Modal>
+  );
+}
+
+/** Pro: three AI-written first messages. On Free the API answers 402 and the global paywall opens. */
+function Icebreaker({ c, onClose }: { c: Connection; onClose: () => void }) {
+  const [state, setState] = useState<{ kind: 'loading' } | { kind: 'ok'; lines: string[] } | { kind: 'error'; message: string }>({ kind: 'loading' });
+  const [started, setStarted] = useState(false);
+
+  async function load() {
+    setState({ kind: 'loading' });
+    try {
+      const res = await api.icebreaker(c.id);
+      setState({ kind: 'ok', lines: res.lines });
+    } catch (e) {
+      if (e instanceof ApiRequestError && e.code === 'PLAN_LIMIT') return onClose(); // paywall is already open
+      setState({ kind: 'error', message: e instanceof Error ? e.message : 'Something went wrong. Try again.' });
+    }
+  }
+  if (!started) {
+    setStarted(true);
+    void load();
+  }
+
+  async function copy(line: string) {
+    try {
+      await navigator.clipboard.writeText(line);
+      toast('Copied. Paste it in your chat with ' + c.other.displayName, { tone: 'success' });
+    } catch {
+      toast('Could not copy. Long-press the text instead.');
+    }
+  }
+
+  return (
+    <Modal open onClose={onClose} label="AI icebreaker" testId="icebreaker-sheet" width="max-w-[480px]">
+      <div className="flex flex-col gap-4 pr-8">
+        <h2 className="font-display text-[32px] leading-none">say hi to {c.other.displayName}</h2>
+        <p className="text-[13px] text-ink/70">Written for your shared goals. Tap one to copy, then send it where you chat.</p>
+        {state.kind === 'loading' ? (
+          <div className="flex flex-col gap-2" aria-busy="true">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="k7-skeleton h-14 w-full" />
+            ))}
+          </div>
+        ) : state.kind === 'error' ? (
+          <div className="flex flex-col items-start gap-2">
+            <p role="alert" className="text-[14px] font-semibold text-danger">{state.message}</p>
+            <Button size="sm" variant="secondary" onClick={() => void load()}>try again</Button>
+          </div>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {state.lines.map((line) => (
+              <li key={line}>
+                <button
+                  type="button"
+                  onClick={() => void copy(line)}
+                  className="w-full rounded-[10px] border-[3px] border-ink bg-mist px-3 py-2.5 text-left text-[14px] hover:bg-white"
+                >
+                  {line}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {state.kind === 'ok' ? (
+          <Button size="sm" variant="secondary" onClick={() => void load()} className="w-fit">
+            new ideas
+          </Button>
+        ) : null}
+      </div>
     </Modal>
   );
 }

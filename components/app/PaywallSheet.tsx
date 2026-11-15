@@ -8,13 +8,8 @@ import { api } from '@/lib/api';
 import { PLAN_LABEL, paywallCopy, planPrice } from '@/lib/format';
 import { closePaywall, usePaywall } from '@/lib/paywall';
 import { toast } from '@/lib/toast';
+import { PLAN_FEATURES } from '@/lib/plan-features';
 import type { PaidPlan } from '@/lib/types';
-
-export const PLAN_FEATURES: Record<PaidPlan, string[]> = {
-  starter: ['Everyone on the map', 'Unlimited connects', 'Medium level'],
-  pro: ['Hard level', 'AI step-by-step roadmap', 'AI icebreakers', 'Weekly map boost'],
-  crew: ['Group quests up to 4', 'Private crew feed', 'Verified badge'],
-};
 
 export async function startCheckout(tier: PaidPlan): Promise<void> {
   try {
