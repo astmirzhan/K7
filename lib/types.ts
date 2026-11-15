@@ -11,7 +11,7 @@ export type Visibility = 'public' | 'private';
 export type StageKind = 'solo' | 'connect' | 'coop';
 export type StageStatus = 'locked' | 'active' | 'waiting_partner' | 'done';
 export type InterestCategory =
-  | 'fitness' | 'outdoors' | 'languages' | 'music' | 'creative' | 'food' | 'mind' | 'social';
+  | 'fitness' | 'outdoors' | 'languages' | 'music' | 'creative' | 'food' | 'mind' | 'social' | 'other'; // other = typed by a user
 
 export const US_STATES = [
   'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'DC', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS',
@@ -23,8 +23,8 @@ export type UsState = (typeof US_STATES)[number];
 export const AVATAR_PRESETS = ['ninja-1', 'ninja-2', 'ninja-3', 'ninja-4'] as const;
 export const AVATAR_ACCESSORIES = ['none', 'katana', 'staff', 'shuriken', 'headphones'] as const;
 export type Avatar =
-  | { kind: 'preset'; preset: (typeof AVATAR_PRESETS)[number] }
-  | { kind: 'custom'; suit: string; band: string; accessory: (typeof AVATAR_ACCESSORIES)[number] }; // suit/band = #rrggbb
+  | { kind: 'preset'; preset: (typeof AVATAR_PRESETS)[number]; name?: string }
+  | { kind: 'custom'; suit: string; band: string; accessory: (typeof AVATAR_ACCESSORIES)[number]; name?: string }; // suit/band = #rrggbb; name = the ninja's own name, 1-20 chars
 
 // ---------- Catalog ----------
 export interface Interest {
@@ -239,6 +239,7 @@ export interface CompleteStageResponse {
   levelCompleted: boolean;
   nextStageId: string | null;
 }
+export interface CustomInterestRequest { name: string } // 2-30 chars; returns the existing goal when the name matches one
 export interface CreateConnectionRequest { toUserId: string; interestSlug: string }
 export interface RespondConnectionRequest { status: 'accepted' | 'declined' }
 export interface CreateMeetupRequest { connectionId: string; startsAt: string; place: string; interestSlug: string }

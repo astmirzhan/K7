@@ -54,6 +54,7 @@ export function LevelComplete({ level, avatar, coins, onNext }: { level: Level; 
         <div className="k7-outline k7-shadow rounded-[16px] bg-[#e8f6d0] p-4">
           <Ninja avatar={avatar} size={88} />
         </div>
+        {avatar.name ? <p className="k7-label -mt-2 text-[11px]">{avatar.name} levelled up</p> : null}
         <Sign className="-mt-2">
           <p className="font-display text-[40px] leading-none text-yellow">+{coins}</p>
           <p className="k7-label text-[10px] text-white">coins earned</p>
