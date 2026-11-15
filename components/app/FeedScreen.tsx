@@ -12,7 +12,7 @@ import { timeAgo } from '@/lib/relative-time';
 import type { FeedItem } from '@/lib/types';
 import { STATE_NAMES } from '@/lib/us';
 
-// 10 Feed: Reels-style vertical cards with CSS scroll-snap. Everyone / Mine.
+// 10 Feed: vertical cards that scroll with the page. Everyone / Mine.
 export function FeedScreen() {
   return <OnboardedGate fallback={<FeedSkeleton />}>{() => <Inner />}</OnboardedGate>;
 }
@@ -57,7 +57,7 @@ function Inner() {
           <EmptyState title="The feed is quiet" text="Be the first: finish a stage with a photo." action={{ label: 'open the roadmap', href: '/roadmap' }} />
         )
       ) : (
-        <div className="k7-snap -mx-3 flex h-[calc(100dvh-220px)] snap-y snap-mandatory flex-col gap-4 overflow-y-auto px-3 pb-2 md:mx-0 md:h-auto md:snap-none md:overflow-visible md:px-0">
+        <div className="flex flex-col gap-4 pb-2">
           {pairCoopItems(data).map((e) =>
             e.kind === 'pair' ? (
               <CoopCard key={`${e.a.id}-${e.b.id}`} a={e.a} b={e.b} onImageError={() => void mutate()} />
@@ -73,7 +73,7 @@ function Inner() {
 
 function FeedCard({ item, scope, onImageError }: { item: FeedItem; scope: 'public' | 'mine'; onImageError: () => void }) {
   return (
-    <article data-testid="feed-item" className="k7-outline k7-shadow-sm flex min-h-[calc(100dvh-240px)] shrink-0 snap-start flex-col overflow-hidden rounded-[16px] bg-white md:min-h-0">
+    <article data-testid="feed-item" className="k7-outline k7-shadow-sm flex shrink-0 flex-col overflow-hidden rounded-[16px] bg-white">
       <div className="flex items-center gap-3 p-3">
         <AvatarTile avatar={item.author.avatar} size={40} />
         <div className="min-w-0 flex-1">
@@ -84,7 +84,7 @@ function FeedCard({ item, scope, onImageError }: { item: FeedItem; scope: 'publi
         </div>
         {scope === 'mine' && item.visibility === 'private' ? <Tag tone="lilac">private</Tag> : null}
       </div>
-      <div className="relative flex-1 bg-ink/5">
+      <div className="relative min-h-[240px] flex-1 bg-ink/5">
         <img
           src={item.photoUrl}
           alt={item.caption || `${item.stageTitle} — ${item.author.displayName}`}
@@ -117,7 +117,7 @@ function FeedCard({ item, scope, onImageError }: { item: FeedItem; scope: 'publi
 /** Co-op reveal: both partners' photos side by side in one card. */
 function CoopCard({ a, b, onImageError }: { a: FeedItem; b: FeedItem; onImageError: () => void }) {
   return (
-    <article data-testid="feed-item" className="k7-outline k7-shadow-sm flex shrink-0 snap-start flex-col overflow-hidden rounded-[16px] bg-white">
+    <article data-testid="feed-item" className="k7-outline k7-shadow-sm flex shrink-0 flex-col overflow-hidden rounded-[16px] bg-white">
       <div className="flex items-center gap-2 p-3">
         <div className="flex -space-x-2">
           <AvatarTile avatar={a.author.avatar} size={40} />
