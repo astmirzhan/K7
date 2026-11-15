@@ -9,6 +9,8 @@ import { Panel } from '@/components/ui/Panel';
 import { ErrorState, PanelSkeleton, Skeleton } from '@/components/ui/States';
 import { DIFFICULTY_LABEL, PLAN_LABEL } from '@/lib/format';
 import { useRoadmap } from '@/lib/hooks';
+import { KEYS } from '@/lib/api';
+import { mutate as revalidateKey } from 'swr';
 import { openPaywall } from '@/lib/paywall';
 import { toast } from '@/lib/toast';
 import type { CompleteStageResponse, Level, OnboardedMe, Stage } from '@/lib/types';
@@ -83,6 +85,12 @@ function Inner({ me, mode }: { me: OnboardedMe; mode: 'home' | 'roadmap' }) {
     },
     [levels],
   );
+
+  // a partner finishing a co-op changes my coins too: refresh them as soon as the roadmap poll sees it
+  const doneKey = levels ? levels.flatMap((l) => l.stages).filter((st) => st.status === 'done').length : 0;
+  useEffect(() => {
+    if (doneKey > 0) void revalidateKey(KEYS.me);
+  }, [doneKey]);
 
   // strip ?stage from the URL once it has been consumed
   useEffect(() => {
