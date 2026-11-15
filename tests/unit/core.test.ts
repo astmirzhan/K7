@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppError, fromDbError, toErrorResponse } from '../../lib/server/errors';
 import { canAccessDifficulty, limitsFor, PLAN_RULES, requiredPlanForDifficulty } from '../../lib/server/plans';
-import { buildRoadmapPrompt, parseAiStages } from '../../lib/server/roadmap/ai';
+import { buildRoadmapPrompt, geminiText, parseAiStages, pickAiProvider } from '../../lib/server/roadmap/ai';
 import { buildRoadmapRows } from '../../lib/server/roadmap/generate';
 import { STAGE_SKELETON, toStageRows } from '../../lib/server/roadmap/skeleton';
 import { templateDrafts } from '../../lib/server/roadmap/templates';
@@ -165,5 +165,18 @@ describe('AI fallback', () => {
     expect(rows).toHaveLength(19);
     expect(rows.every((r) => r.source === 'ai')).toBe(true);
     expect(rows.filter((r) => r.kind === 'coop')).toHaveLength(3);
+  });
+});
+
+describe('AI provider', () => {
+  it('prefers Gemini, then Anthropic, else templates', () => {
+    expect(pickAiProvider({ GEMINI_API_KEY: 'g', ANTHROPIC_API_KEY: 'a' })).toBe('gemini');
+    expect(pickAiProvider({ ANTHROPIC_API_KEY: 'a' })).toBe('anthropic');
+    expect(pickAiProvider({ GEMINI_API_KEY: '', ANTHROPIC_API_KEY: '' })).toBeNull();
+  });
+  it('reads the text of a Gemini response', () => {
+    expect(geminiText({ candidates: [{ content: { parts: [{ text: '{"stages":' }, { text: '[]}' }] } }] })).toBe('{"stages":[]}');
+    expect(geminiText({ promptFeedback: { blockReason: 'SAFETY' } })).toBe('');
+    expect(geminiText(null)).toBe('');
   });
 });

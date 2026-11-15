@@ -66,32 +66,69 @@ export function parseAiStages(text: string, difficulty: Difficulty): StageDraft[
   return parsed.data.stages;
 }
 
-/** One call to the Anthropic Messages API. Returns null on missing key, timeout, HTTP error or bad JSON. */
+export type AiProvider = 'gemini' | 'anthropic';
+
+/** Gemini when GEMINI_API_KEY is set, else Anthropic when ANTHROPIC_API_KEY is set, else none (templates). */
+export function pickAiProvider(env: Record<string, string | undefined>): AiProvider | null {
+  if (env.GEMINI_API_KEY) return 'gemini';
+  if (env.ANTHROPIC_API_KEY) return 'anthropic';
+  return null;
+}
+
+/** Text of the first Gemini candidate, or '' when the shape is unexpected. */
+export function geminiText(body: unknown): string {
+  const parts = (body as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> })?.candidates?.[0]?.content?.parts;
+  return Array.isArray(parts) ? parts.map((p) => p.text ?? '').join('') : '';
+}
+
+async function callGemini(prompt: string, apiKey: string, timeoutMs: number): Promise<string | null> {
+  const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+    method: 'POST',
+    headers: { 'x-goog-api-key': apiKey, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 2000, temperature: 0.7 },
+    }),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (!res.ok) {
+    console.warn('[ai] gemini http', res.status);
+    return null;
+  }
+  return geminiText(await res.json());
+}
+
+async function callAnthropic(prompt: string, apiKey: string, timeoutMs: number): Promise<string | null> {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: process.env.LLM_MODEL || 'claude-haiku-5-5',
+      max_tokens: 2000,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (!res.ok) {
+    console.warn('[ai] anthropic http', res.status);
+    return null;
+  }
+  const body = (await res.json()) as { content?: Array<{ type: string; text?: string }> };
+  return (body.content ?? []).filter((c) => c.type === 'text').map((c) => c.text ?? '').join('');
+}
+
+/** One model call (Gemini or Anthropic). Returns null on missing key, timeout, HTTP error or bad JSON. */
 export async function generateAiStages(ctx: RoadmapContext, timeoutMs = 8000): Promise<StageDraft[] | null> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return null;
+  const provider = pickAiProvider(process.env);
+  if (!provider) return null;
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: process.env.LLM_MODEL || 'claude-haiku-5-5',
-        max_tokens: 2000,
-        messages: [{ role: 'user', content: buildRoadmapPrompt(ctx) }],
-      }),
-      signal: AbortSignal.timeout(timeoutMs),
-    });
-    if (!res.ok) {
-      console.warn('[ai] roadmap http', res.status);
-      return null;
-    }
-    const body = (await res.json()) as { content?: Array<{ type: string; text?: string }> };
-    const text = (body.content ?? []).filter((c) => c.type === 'text').map((c) => c.text ?? '').join('');
-    return parseAiStages(text, ctx.difficulty);
+    const prompt = buildRoadmapPrompt(ctx);
+    const text =
+      provider === 'gemini'
+        ? await callGemini(prompt, process.env.GEMINI_API_KEY!, timeoutMs)
+        : await callAnthropic(prompt, process.env.ANTHROPIC_API_KEY!, timeoutMs);
+    return text ? parseAiStages(text, ctx.difficulty) : null;
   } catch (e) {
     console.warn('[ai] roadmap failed, using template', (e as Error).name);
     return null;
