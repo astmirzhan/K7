@@ -54,7 +54,10 @@ function Inner({ me }: { me: OnboardedMe }) {
 
   const items = useMemo(() => {
     const all = users.data?.items ?? [];
-    return interest ? all.filter((c) => c.sharedInterests.some((s) => s.slug === interest)) : all;
+    if (!interest) return all;
+    // typed goals rarely match exactly: with nobody on this goal, show everyone instead of an empty list
+    const same = all.filter((c) => c.sharedInterests.some((s) => s.slug === interest));
+    return same.length > 0 ? same : all;
   }, [users.data, interest]);
   const interestName = interest ? me.interests.find((i) => i.interest.slug === interest)?.interest.name ?? interest : null;
 

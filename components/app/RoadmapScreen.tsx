@@ -103,7 +103,7 @@ function Inner({ me, mode }: { me: OnboardedMe; mode: 'home' | 'roadmap' }) {
     setSeenDone(doneSlugs);
     for (const l of levels) {
       if (!doneSlugs.split(',').includes(l.interest.slug)) continue;
-      const key = `k7.levelDone.${l.interest.slug}`;
+      const key = `k7.levelDone.${me.id}.${l.interest.slug}`;
       try {
         if (!localStorage.getItem(key)) {
           localStorage.setItem(key, '1');
@@ -120,7 +120,7 @@ function Inner({ me, mode }: { me: OnboardedMe; mode: 'home' | 'roadmap' }) {
     const lvl = levels?.find((l) => l.interest.slug === stage.interestSlug);
     if (res.levelCompleted && lvl) {
       try {
-        localStorage.setItem(`k7.levelDone.${lvl.interest.slug}`, '1');
+        localStorage.setItem(`k7.levelDone.${me.id}.${lvl.interest.slug}`, '1');
       } catch {
         /* ignore */
       }
