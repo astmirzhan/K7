@@ -163,7 +163,8 @@ async function callAnthropic(prompt: string, apiKey: string, timeoutMs: number, 
   return (body.content ?? []).filter((c) => c.type === 'text').map((c) => c.text ?? '').join('');
 }
 
-async function callModel(prompt: string, timeoutMs: number, maxTokens: number): Promise<string | null> {
+/** Raw text from the configured model (Gemini first, then Anthropic); null when no key is set. */
+export async function callModel(prompt: string, timeoutMs: number, maxTokens: number): Promise<string | null> {
   const provider = pickAiProvider(process.env);
   if (!provider) return null;
   return provider === 'gemini'
