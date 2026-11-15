@@ -28,10 +28,21 @@ export const idSchema = z.guid();
 export const difficultySchema = z.union([z.literal(1), z.literal(3), z.literal(5)]);
 const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Use a #rrggbb color');
 
+const ninjaName = z.string().trim().min(1).max(20).optional();
 export const avatarSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('preset'), preset: z.enum(AVATAR_PRESETS) }),
-  z.object({ kind: z.literal('custom'), suit: hexColor, band: hexColor, accessory: z.enum(AVATAR_ACCESSORIES) }),
+  z.object({ kind: z.literal('preset'), preset: z.enum(AVATAR_PRESETS), name: ninjaName }),
+  z.object({ kind: z.literal('custom'), suit: hexColor, band: hexColor, accessory: z.enum(AVATAR_ACCESSORIES), name: ninjaName }),
 ]);
+
+/** A typed goal: letters (any language), digits, spaces and & ' - . + only. */
+export const customInterestSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, 'Use at least 2 characters')
+    .max(30, 'Keep it under 30 characters')
+    .regex(/^[\p{L}\p{N}][\p{L}\p{N} &'.+-]*$/u, 'Use letters, numbers and spaces'),
+});
 
 // ---------- Requests ----------
 export const onboardingSchema = z.object({

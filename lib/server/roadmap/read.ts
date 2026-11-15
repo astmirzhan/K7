@@ -19,13 +19,35 @@ interface ReportDb {
 const STAGE_COLS =
   'id, interest_slug, difficulty, idx, kind, title, description, minutes, steps, requires_photo, status, coins, source, partner_id';
 
-let catalog: Map<string, Interest> | null = null;
-export async function interestCatalog(): Promise<Map<string, Interest>> {
-  if (catalog) return catalog;
-  const { data, error } = await adminClient().from('interests').select('slug, name, icon, category').order('name');
+// All goals, curated and user-typed. Cached briefly: custom goals typed on another instance appear within a minute.
+const CATALOG_TTL_MS = 60_000;
+let catalog: { at: number; all: Map<string, Interest>; curated: Set<string> } | null = null;
+
+async function loadCatalog() {
+  if (catalog && Date.now() - catalog.at < CATALOG_TTL_MS) return catalog;
+  const { data, error } = await adminClient().from('interests').select('slug, name, icon, category, custom').order('name');
   if (error) throw new AppError('INTERNAL', undefined, { details: error.message });
-  catalog = new Map((data as Interest[]).map((i) => [i.slug, i]));
+  const rows = data as Array<Interest & { custom: boolean }>;
+  catalog = {
+    at: Date.now(),
+    all: new Map(rows.map((r) => [r.slug, { slug: r.slug, name: r.name, icon: r.icon, category: r.category }])),
+    curated: new Set(rows.filter((r) => !r.custom).map((r) => r.slug)),
+  };
   return catalog;
+}
+
+export async function interestCatalog(): Promise<Map<string, Interest>> {
+  return (await loadCatalog()).all;
+}
+
+/** The 30 suggested goals shown in the picker (no user-typed ones). */
+export async function curatedInterests(): Promise<Interest[]> {
+  const c = await loadCatalog();
+  return [...c.all.values()].filter((i) => c.curated.has(i.slug));
+}
+
+export function invalidateCatalog(): void {
+  catalog = null;
 }
 
 export async function getPlan(userId: string): Promise<Plan> {
