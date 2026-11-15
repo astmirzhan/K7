@@ -1,7 +1,7 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppError, fromDbError, toErrorResponse } from '../../lib/server/errors';
 import { canAccessDifficulty, limitsFor, PLAN_RULES, requiredPlanForDifficulty } from '../../lib/server/plans';
-import { buildRoadmapPrompt, geminiText, parseAiStages, pickAiProvider } from '../../lib/server/roadmap/ai';
+import { buildCombinedPrompt, buildRoadmapPrompt, geminiText, parseAiLevels, parseAiStages, pickAiProvider } from '../../lib/server/roadmap/ai';
 import { buildRoadmapRows } from '../../lib/server/roadmap/generate';
 import { STAGE_SKELETON, toStageRows } from '../../lib/server/roadmap/skeleton';
 import { templateDrafts } from '../../lib/server/roadmap/templates';
@@ -133,6 +133,7 @@ describe('roadmap', () => {
 
 describe('AI fallback', () => {
   afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
+  beforeEach(() => { vi.stubEnv('GEMINI_API_KEY', ''); });
   const picks: Array<{ interest: Interest; difficulty: 1 | 3 | 5 }> = [
     { interest: { slug: 'running', name: 'Running', icon: '🏃', category: 'fitness' }, difficulty: 1 },
     { interest: { slug: 'spanish', name: 'Spanish', icon: '💬', category: 'languages' }, difficulty: 3 },
@@ -158,10 +159,13 @@ describe('AI fallback', () => {
     vi.stubEnv('ANTHROPIC_API_KEY', 'test');
     const s = { title: 'Jog 10 minutes', description: 'Easy pace around Lady Bird Lake.', minutes: 10, steps: ['a1', 'b2', 'c3'] };
     vi.stubGlobal('fetch', vi.fn(async (_u: string, init: RequestInit) => {
-      const n = (JSON.parse(String(init.body)).messages[0].content as string).match(/Exactly (\d+) stages/)![1];
-      return Response.json({ content: [{ type: 'text', text: JSON.stringify({ stages: Array(Number(n)).fill(s) }) }] });
+      // one combined call: answer every "exactly N stages" level of the prompt
+      const prompt = JSON.parse(String(init.body)).messages[0].content as string;
+      const levels = [...prompt.matchAll(/exactly (\d+) stages/g)].map((m) => ({ stages: Array(Number(m[1])).fill(s) }));
+      return Response.json({ content: [{ type: 'text', text: JSON.stringify({ levels }) }] });
     }));
     const rows = await buildRoadmapRows(picks, who);
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1); // one request for all three levels
     expect(rows).toHaveLength(19);
     expect(rows.every((r) => r.source === 'ai')).toBe(true);
     expect(rows.filter((r) => r.kind === 'coop')).toHaveLength(3);
@@ -178,5 +182,31 @@ describe('AI provider', () => {
     expect(geminiText({ candidates: [{ content: { parts: [{ text: '{"stages":' }, { text: '[]}' }] } }] })).toBe('{"stages":[]}');
     expect(geminiText({ promptFeedback: { blockReason: 'SAFETY' } })).toBe('');
     expect(geminiText(null)).toBe('');
+  });
+});
+
+describe('combined AI roadmap', () => {
+  const stage = { title: 'Do the thing today', description: 'A short motivating description.', minutes: 10, steps: ['one', 'two', 'three'] };
+  const level = (n: number) => ({ stages: Array.from({ length: n }, () => stage) });
+  const ctx = (interestName: string, difficulty: 1 | 3 | 5) =>
+    ({ interestName, category: 'fitness', difficulty, city: 'Austin', state: 'TX', meetStyle: 'solo' }) as const;
+
+  it('asks for every level in one prompt', () => {
+    const p = buildCombinedPrompt([ctx('Running', 1), ctx('Spanish', 3), ctx('Guitar', 5)]);
+    expect(p).toContain('Level 1: "Running"');
+    expect(p).toContain('Level 3: "Guitar"');
+    expect(p).toContain('exactly 10 stages');
+    expect(p).toContain('Austin');
+  });
+  it('parses each level on its own', () => {
+    const text = JSON.stringify({ levels: [level(3), level(5), level(10)] }); // the Medium level has the wrong length
+    const r = parseAiLevels(text, [1, 3, 5]);
+    expect(r[0]).toHaveLength(3);
+    expect(r[1]).toBeNull();
+    expect(r[2]).toHaveLength(10);
+  });
+  it('returns all nulls for garbage', () => {
+    expect(parseAiLevels('no json here', [1, 3, 5])).toEqual([null, null, null]);
+    expect(parseAiLevels('{"stages":[]}', [1])).toEqual([null]);
   });
 });
