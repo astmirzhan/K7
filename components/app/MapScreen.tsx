@@ -2,6 +2,7 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { OnboardedGate } from '@/components/OnboardedGate';
+import { Cloud } from '@/components/scene/Cloud';
 import { LockIcon } from '@/components/scene/Icons';
 import { Chip } from '@/components/ui/Chip';
 import { Panel } from '@/components/ui/Panel';
@@ -81,7 +82,7 @@ function Inner({ me }: { me: OnboardedMe }) {
         {states.error && !states.data ? (
           <ErrorState message={states.error.message} onRetry={() => void states.mutate()} />
         ) : (
-          <Panel tone="mist" shadow="md" className="relative overflow-hidden p-2 md:p-4">
+          <Panel tone="mist" shadow="md" className="relative overflow-hidden p-0">
             <UsMap
               counts={counts}
               selected={selected}
@@ -99,6 +100,11 @@ function Inner({ me }: { me: OnboardedMe }) {
                 window.setTimeout(() => el?.classList.remove('k7-bounce'), 400);
               }}
             />
+            {/* clouds drifting across, behind the controls */}
+            <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+              <div className="k7-drift absolute top-[8%] w-full"><Cloud width={90} /></div>
+              <div className="k7-drift absolute top-[62%] w-full [animation-delay:-28s] [animation-duration:80s]"><Cloud width={64} /></div>
+            </div>
             <div className="absolute left-3 top-3 flex flex-wrap gap-2 md:left-5 md:top-5">
               <Chip size="sm" active={!zoomed} onClick={() => setZoomed((z) => !z)} data-testid="map-zoom">
                 {zoomed ? 'US view' : `zoom to ${selected}`}

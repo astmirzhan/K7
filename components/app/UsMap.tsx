@@ -92,12 +92,28 @@ export function UsMap({
     });
   }, [pins, all, view.k]);
 
-  const heat = (n: number) => (n === 0 ? '#eef0fb' : n >= max * 0.6 ? '#ffc803' : n >= max * 0.25 ? '#a6d86a' : '#e1f2c8');
+  // game palette: pale meadow, grass, forest; the busiest states glow like coins
+  const heat = (n: number) => (n === 0 ? '#d7ebbd' : n >= max * 0.6 ? '#ffc803' : n >= max * 0.25 ? '#7fc35a' : '#a6d86a');
   const s = 1 / view.k; // keep strokes, labels and pins the same size at any zoom
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full" role="img" aria-label="Map of the United States with people per state">
+      <defs>
+        {/* pixel water: flat blue with short white wave dashes */}
+        <pattern id="k7-water" width="36" height="24" patternUnits="userSpaceOnUse">
+          <rect width="36" height="24" fill="#8fb4ea" />
+          <rect x="4" y="6" width="8" height="2" fill="#b9d0f5" />
+          <rect x="22" y="17" width="8" height="2" fill="#b9d0f5" />
+        </pattern>
+      </defs>
+      <rect width={W} height={H} fill="url(#k7-water)" />
       <g style={{ transform: `translate(${view.tx}px, ${view.ty}px) scale(${view.k})`, transition: 'transform 450ms ease-out' }} className="motion-reduce:transition-none">
+        {/* hard ink shadow under the land, like every panel on the site */}
+        <g transform={`translate(${5 * s} ${7 * s})`} aria-hidden="true">
+          {all.map((st) => (
+            <path key={`sh-${st.code}`} d={st.d} fill="#2e1b5b" stroke="#2e1b5b" strokeWidth={2.4 * s} />
+          ))}
+        </g>
         {all.map((st) => {
           const n = counts.get(st.code) ?? 0;
           const isSel = st.code === selected;
@@ -114,8 +130,9 @@ export function UsMap({
               onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelect(st.code)}
               fill={isSel ? '#2e1b5b' : heat(n)}
               stroke="#2e1b5b"
-              strokeWidth={1.4 * s}
-              strokeLinejoin="round"
+              strokeWidth={2.4 * s}
+              strokeLinejoin="miter"
+              shapeRendering="crispEdges"
               className="cursor-pointer outline-none transition-[fill] hover:brightness-95 focus-visible:brightness-90"
             >
               <title>{`${STATE_NAMES[st.code]} · ${n}`}</title>
@@ -130,15 +147,17 @@ export function UsMap({
           const isSel = st.code === selected;
           if (zoomed && isSel && placed.length > 0) return null; // the pins tell the story there
           const label = String(n);
-          const w = (10 + label.length * 9) * s;
-          const h = 18 * s;
+          const w = (26 + label.length * 9) * s;
+          const h = 22 * s;
           return (
             <g key={`b-${st.code}`} transform={`translate(${st.centroid[0]} ${st.centroid[1]})`} pointerEvents="none">
-              <rect x={-w / 2} y={-h / 2} width={w} height={h} rx={4 * s} fill={isSel ? '#ffc803' : '#ffffff'} stroke="#2e1b5b" strokeWidth={2 * s} />
-              <text y={5 * s} textAnchor="middle" fontSize={13 * s} fontWeight={700} fill="#2e1b5b" fontFamily="var(--font-body)">
+              <rect x={-w / 2 + 2.5 * s} y={-h / 2 + 3 * s} width={w} height={h} fill="#2e1b5b" />
+              <rect x={-w / 2} y={-h / 2} width={w} height={h} fill={isSel ? '#ffc803' : '#ffffff'} stroke="#2e1b5b" strokeWidth={2.5 * s} />
+              <circle cx={-w / 2 + 10 * s} cy={0} r={5 * s} fill="#ffc803" stroke="#2e1b5b" strokeWidth={2 * s} />
+              <text x={5 * s} y={6.5 * s} textAnchor="middle" fontSize={20 * s} fill="#2e1b5b" fontFamily="var(--font-display)">
                 {label}
               </text>
-              {st.code === myState && !isSel ? <circle cx={w / 2} cy={-h / 2} r={4 * s} fill="#ff6fa8" stroke="#2e1b5b" strokeWidth={1.5 * s} /> : null}
+              {st.code === myState && !isSel ? <rect x={w / 2 - 5 * s} y={-h / 2 - 5 * s} width={9 * s} height={9 * s} fill="#ff6fa8" stroke="#2e1b5b" strokeWidth={2 * s} /> : null}
             </g>
           );
         })}
@@ -160,6 +179,7 @@ export function UsMap({
                 data-testid={`map-pin-${p.id}`}
               >
                 <g className="k7-pin">
+                  <ellipse cx={2} cy={17} rx={13} ry={4} fill="#2e1b5b" opacity={0.35} />
                   <circle r={15} fill="#e8f6d0" stroke="#2e1b5b" strokeWidth={3} />
                   <g transform="translate(-11 -12)">
                     <Ninja avatar={p.avatar} size={22} />
