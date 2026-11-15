@@ -63,7 +63,7 @@ export function Scene({
           <>
             <Pipe hanging height={240} width={72} className="absolute left-[8%] top-0 hidden sm:block" />
             <Pipe hanging height={150} width={72} className="absolute right-[9%] top-0" />
-            <Pipe height={200} width={72} className="absolute left-[8%] bottom-[72px] md:bottom-[96px]" />
+            <Pipe height={200} width={72} className="absolute left-[8%] bottom-[72px] md:bottom-[96px] hidden sm:block" />
             <Pipe height={260} width={72} className="absolute right-[9%] bottom-[72px] md:bottom-[96px] hidden sm:block" />
           </>
         )}
