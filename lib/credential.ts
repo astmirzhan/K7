@@ -2,6 +2,9 @@ import type { Difficulty } from './types';
 
 const LETTER: Record<Difficulty, string> = { 1: 'E', 3: 'M', 5: 'H' };
 
+/** K7's LinkedIn Company Page (linkedin.com/company/145454247): credentials show its logo. Public, not a secret. */
+export const K7_LINKEDIN_ORG_ID = '145454247';
+
 /** Stable credential id for a finished level: K7-<3 letters of the goal>-<E|M|H>-<6 hex from user + goal>. */
 export function credentialId(userId: string, interestSlug: string, difficulty: Difficulty): string {
   let h = 2166136261;
