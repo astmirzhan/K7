@@ -7,6 +7,7 @@ import { Chip, Tag } from '@/components/ui/Chip';
 import { DifficultyBadge } from '@/components/ui/DifficultyBadge';
 import { EmptyState, ErrorState, Skeleton } from '@/components/ui/States';
 import { useFeed } from '@/lib/hooks';
+import { pairCoopItems } from '@/lib/feed-pairs';
 import { timeAgo } from '@/lib/relative-time';
 import type { FeedItem } from '@/lib/types';
 import { STATE_NAMES } from '@/lib/us';
@@ -57,9 +58,13 @@ function Inner() {
         )
       ) : (
         <div className="k7-snap -mx-3 flex h-[calc(100dvh-220px)] snap-y snap-mandatory flex-col gap-4 overflow-y-auto px-3 pb-2 md:mx-0 md:h-auto md:snap-none md:overflow-visible md:px-0">
-          {data.map((item) => (
-            <FeedCard key={item.id} item={item} scope={scope} onImageError={() => void mutate()} />
-          ))}
+          {pairCoopItems(data).map((e) =>
+            e.kind === 'pair' ? (
+              <CoopCard key={`${e.a.id}-${e.b.id}`} a={e.a} b={e.b} onImageError={() => void mutate()} />
+            ) : (
+              <FeedCard key={e.item.id} item={e.item} scope={scope} onImageError={() => void mutate()} />
+            ),
+          )}
         </div>
       )}
     </div>
@@ -104,6 +109,62 @@ function FeedCard({ item, scope, onImageError }: { item: FeedItem; scope: 'publi
         <p className="flex items-center gap-1 text-[12px] text-ink/60">
           <Coin size={12} /> {item.kind === 'coop' ? 'co-op stage' : item.kind === 'connect' ? 'buddy stage' : 'solo stage'}
         </p>
+      </div>
+    </article>
+  );
+}
+
+/** Co-op reveal: both partners' photos side by side in one card. */
+function CoopCard({ a, b, onImageError }: { a: FeedItem; b: FeedItem; onImageError: () => void }) {
+  return (
+    <article data-testid="feed-item" className="k7-outline k7-shadow-sm flex shrink-0 snap-start flex-col overflow-hidden rounded-[16px] bg-white">
+      <div className="flex items-center gap-2 p-3">
+        <div className="flex -space-x-2">
+          <AvatarTile avatar={a.author.avatar} size={40} />
+          <AvatarTile avatar={b.author.avatar} size={40} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-display text-[22px] leading-none">
+            {a.author.displayName} &amp; {b.author.displayName}
+          </p>
+          <p className="truncate text-[12px] text-ink/70">
+            {a.author.city}, {STATE_NAMES[a.author.state]} · {timeAgo(a.createdAt > b.createdAt ? a.createdAt : b.createdAt)}
+          </p>
+        </div>
+        <Tag tone="yellow">co-op</Tag>
+      </div>
+      <div className="grid grid-cols-2 gap-[4px] bg-ink">
+        {[a, b].map((x) => (
+          <figure key={x.id} className="relative">
+            <img
+              src={x.photoUrl}
+              alt={x.caption || `${x.stageTitle} — ${x.author.displayName}`}
+              loading="lazy"
+              decoding="async"
+              onError={onImageError}
+              className="aspect-[3/4] h-full w-full object-cover"
+            />
+            <figcaption className="k7-label absolute bottom-2 left-2 rounded-[6px] border-[3px] border-ink bg-white px-1.5 py-0.5 text-[9px]">
+              {x.author.displayName}
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+      <div className="flex flex-col gap-1 p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Tag tone="white">
+            <span aria-hidden="true">{a.interest.icon}</span> {a.interest.name}
+          </Tag>
+          <DifficultyBadge difficulty={a.difficulty} coins={a.difficulty * 2} />
+        </div>
+        <p className="text-[14px] font-semibold">
+          {a.stageTitle} <span className="text-ink/70">· with {b.author.displayName}</span>
+        </p>
+        {[a, b].filter((x) => x.caption).map((x) => (
+          <p key={x.id} className="text-[14px] text-ink/85">
+            <span className="font-semibold">{x.author.displayName}:</span> {x.caption}
+          </p>
+        ))}
       </div>
     </article>
   );
