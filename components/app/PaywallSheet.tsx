@@ -8,14 +8,8 @@ import { api } from '@/lib/api';
 import { PLAN_LABEL, paywallCopy, planPrice } from '@/lib/format';
 import { closePaywall, usePaywall } from '@/lib/paywall';
 import { toast } from '@/lib/toast';
+import { PLAN_FEATURES } from '@/lib/plan-features';
 import type { PaidPlan } from '@/lib/types';
-
-// Only what the product does today: every line here must be findable after paying.
-export const PLAN_FEATURES: Record<PaidPlan, string[]> = {
-  starter: ['Everyone on the map', 'Unlimited connects', 'Medium level'],
-  pro: ['Hard level', 'AI step-by-step plan for every stage', 'Everyone on the map', 'Unlimited connects'],
-  crew: ['Everything in Pro', 'Hard level and AI plans for your whole path', 'Back K7 while we build group quests'],
-};
 
 export async function startCheckout(tier: PaidPlan): Promise<void> {
   try {
