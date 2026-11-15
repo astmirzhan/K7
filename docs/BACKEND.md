@@ -258,6 +258,7 @@ Every route: `route()` wrapper → `requireUser` → Zod (`parseJson` / `parseQu
 | 10 | `GET /api/connections` | — | `ConnectionsResponse` | from `list_connections`; incoming = pending & to me; outgoing = pending & from me. `sharedInterests` per connection = one `user_interests` query for all other ids, intersected with mine (`lib/server/connections.ts`); the same mapper is used by #11 and #12 |
 | 11 | `POST /api/connections` | `createConnectionSchema` | `Connection` | `request_connection`; 402 → `requiredPlan:'starter'` |
 | 12 | `PATCH /api/connections/[id]` | `respondConnectionSchema` | `Connection` | `respond_connection`; on accept `socialUrl` filled |
+| 12a | `POST /api/connections/[id]/icebreaker` | — | `IcebreakerResponse` | Pro/Crew only (402 `requiredPlan:'pro'`); I am a party (404); connection accepted (409 `INVALID_STATE`); one model call, template fallback |
 | 13 | `GET /api/meetups` | — | `Meetup[]` | my connections' meetups, upcoming first |
 | 14 | `POST /api/meetups` | `createMeetupSchema` | `Meetup` | connection accepted, I am a party, not blocked; `proposed_by` = me |
 | 15 | `PATCH /api/meetups/[id]` | `updateMeetupSchema` | `Meetup` | `confirmed`: only the other party, from `proposed`; `cancelled`: either, from proposed/confirmed; `done`: either, from confirmed; else 409 `INVALID_STATE` |

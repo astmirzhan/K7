@@ -4,7 +4,7 @@ import type {
   ApiError, ApiErrorCode, BlockRequest, CheckoutRequest, CheckoutResponse, CompleteStageRequest,
   CompleteStageResponse, ConfirmCheckoutRequest, ConfirmCheckoutResponse, Connection, ConnectionsResponse,
   CreateConnectionRequest, CreateMeetupRequest, FeedItem, Interest, Level, MapStateCount, MapUsersResponse,
-  Me, Meetup, OkResponse, OnboardingRequest, OnboardingResponse, PaidPlan, PublicStats, ReportRequest,
+  IcebreakerResponse, Me, Meetup, OkResponse, OnboardingRequest, OnboardingResponse, PaidPlan, PublicStats, ReportRequest,
   RespondConnectionRequest, UpdateMeetupRequest, UploadUrlResponse, UsState,
 } from './types';
 
@@ -128,6 +128,8 @@ export const api = {
 
   connections: () => request<ConnectionsResponse>('GET', KEYS.connections),
   connect: (body: CreateConnectionRequest) => request<Connection>('POST', '/api/connections', body),
+  icebreaker: (connectionId: string) =>
+    request<IcebreakerResponse>('POST', `/api/connections/${id(connectionId)}/icebreaker`, {}),
   respondConnection: (connectionId: string, body: RespondConnectionRequest) =>
     request<Connection>('PATCH', `/api/connections/${id(connectionId)}`, body),
 

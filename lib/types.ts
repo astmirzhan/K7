@@ -168,6 +168,10 @@ export interface Connection {
   sharedInterests: string[];    // slugs both people have (co-op partner picker filters by this)
   socialUrl: string | null;     // only when accepted
 }
+export interface IcebreakerResponse {
+  lines: string[];            // 3 first messages
+  source: 'ai' | 'template';
+}
 export interface ConnectionsResponse {
   incoming: Connection[];
   outgoing: Connection[];
