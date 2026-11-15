@@ -11,6 +11,8 @@ import { PanelSkeleton } from '@/components/ui/States';
 import { hardNavigate, signOut } from '@/lib/auth-client';
 import { MEET_STYLE_LABEL, PLAN_LABEL } from '@/lib/format';
 import type { OnboardedMe } from '@/lib/types';
+import { useRoadmap } from '@/lib/hooks';
+import { BadgeShelf } from './BadgeShelf';
 import { STATE_NAMES } from '@/lib/us';
 
 // 14 Profile: read-only in the MVP + plan + sign out.
@@ -23,6 +25,7 @@ export function ProfileScreen() {
 }
 
 function Inner({ me }: { me: OnboardedMe }) {
+  const { data: levels } = useRoadmap();
   const [busy, setBusy] = useState(false);
 
   async function out() {
@@ -90,6 +93,12 @@ function Inner({ me }: { me: OnboardedMe }) {
               ))}
           </ul>
         </div>
+      </Panel>
+
+      <Panel shadow="sm" className="flex flex-col gap-3 p-5" data-testid="badges">
+        <p className="k7-label text-ink/60">Badges</p>
+        <BadgeShelf levels={levels} />
+        <p className="text-[12px] text-ink/60">Finish a level to earn its badge: bronze for easy, silver for medium, gold for hard.</p>
       </Panel>
 
       <Panel shadow="sm" className="flex flex-wrap items-center gap-3 p-4">
