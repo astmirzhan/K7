@@ -5,7 +5,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Field, Input } from '@/components/ui/Field';
 import { Panel } from '@/components/ui/Panel';
-import { safeNext, signIn, signOut, signUp } from '@/lib/auth-client';
+import { hardNavigate, safeNext, signIn, signOut, signUp } from '@/lib/auth-client';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 
 // F3: the 04 panel with two inputs, as the handoff says.
@@ -34,8 +34,7 @@ export function AuthForm({ mode }: { mode: 'login' | 'signup' }) {
   async function switchAccount() {
     setPending(true);
     await signOut();
-    setCurrent(null);
-    setPending(false);
+    hardNavigate(`/login${params.get('next') ? `?next=${encodeURIComponent(params.get('next')!)}` : ''}`);
   }
 
   async function onSubmit(e: FormEvent) {
@@ -44,7 +43,7 @@ export function AuthForm({ mode }: { mode: 'login' | 'signup' }) {
     setPending(true);
     const r = mode === 'signup' ? await signUp(email, password) : await signIn(email, password);
     if (r.ok) {
-      router.replace(mode === 'signup' ? '/onboarding' : safeNext(params.get('next')));
+      hardNavigate(mode === 'signup' ? '/onboarding' : safeNext(params.get('next')));
       return;
     }
     setError(r.message);
@@ -112,14 +111,14 @@ export function AuthForm({ mode }: { mode: 'login' | 'signup' }) {
         {mode === 'signup' ? (
           <>
             Already have a ninja?{' '}
-            <Link href="/login" className="font-semibold underline underline-offset-4">
+            <Link href="/login" prefetch={false} className="font-semibold underline underline-offset-4">
               Sign in
             </Link>
           </>
         ) : (
           <>
             New here?{' '}
-            <Link href="/signup" className="font-semibold underline underline-offset-4">
+            <Link href="/signup" prefetch={false} className="font-semibold underline underline-offset-4">
               Create an account
             </Link>
           </>

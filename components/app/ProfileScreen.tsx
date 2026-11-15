@@ -1,5 +1,4 @@
 'use client';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { OnboardedGate } from '@/components/OnboardedGate';
 import { Coin } from '@/components/scene/Coin';
@@ -9,7 +8,7 @@ import { Tag } from '@/components/ui/Chip';
 import { DifficultyBadge } from '@/components/ui/DifficultyBadge';
 import { Divider, Panel } from '@/components/ui/Panel';
 import { PanelSkeleton } from '@/components/ui/States';
-import { signOut } from '@/lib/auth-client';
+import { hardNavigate, signOut } from '@/lib/auth-client';
 import { MEET_STYLE_LABEL, PLAN_LABEL } from '@/lib/format';
 import type { OnboardedMe } from '@/lib/types';
 import { STATE_NAMES } from '@/lib/us';
@@ -24,13 +23,12 @@ export function ProfileScreen() {
 }
 
 function Inner({ me }: { me: OnboardedMe }) {
-  const router = useRouter();
   const [busy, setBusy] = useState(false);
 
   async function out() {
     setBusy(true);
     await signOut();
-    router.replace('/');
+    hardNavigate('/');
   }
 
   const rows: Array<[string, string]> = [

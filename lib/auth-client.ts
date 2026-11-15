@@ -42,3 +42,11 @@ export function safeNext(next: string | null | undefined): string {
   if (!next || !next.startsWith('/') || next.startsWith('//') || next.startsWith('/\\')) return '/home';
   return next;
 }
+
+/**
+ * Full page load after sign-in, sign-up or sign-out. A client-side navigation would reuse router cache
+ * entries (prefetched redirects) from the previous session, e.g. "/signup → /home" while signed out.
+ */
+export function hardNavigate(path: string): void {
+  window.location.assign(path);
+}

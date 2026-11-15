@@ -83,10 +83,10 @@ export default function LandingPage() {
           <p className="mt-5 text-[16px] font-semibold md:text-[18px]">Your goal is a quest. Don’t play it alone.</p>
 
           <div className="mt-7 flex flex-col items-center gap-3 sm:flex-row">
-            <ButtonLink href="/signup" data-testid="start-cta" className="min-w-[180px]">
+            <ButtonLink href="/signup" prefetch={false} data-testid="start-cta" className="min-w-[180px]">
               let’s start
             </ButtonLink>
-            <ButtonLink href="/login" variant="secondary" className="min-w-[200px]">
+            <ButtonLink href="/login" prefetch={false} variant="secondary" className="min-w-[200px]">
               I have an account
             </ButtonLink>
           </div>
@@ -171,7 +171,7 @@ export default function LandingPage() {
 
         <section className="flex w-full flex-col items-center gap-4 py-10">
           <h2 className="k7-title text-[44px] md:text-[60px]">start your first quest</h2>
-          <ButtonLink href="/signup" className="min-w-[200px]">
+          <ButtonLink href="/signup" prefetch={false} className="min-w-[200px]">
             let’s start
           </ButtonLink>
         </section>
