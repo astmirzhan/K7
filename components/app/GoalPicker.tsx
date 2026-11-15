@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Input } from '@/components/ui/Field';
 import { api } from '@/lib/api';
+import { suggestedSlugFor } from '@/lib/goal-synonyms';
 import { toast } from '@/lib/toast';
 import { DIFFICULTY_TONE } from '@/components/ui/DifficultyBadge';
 import { Skeleton } from '@/components/ui/States';
@@ -73,7 +74,10 @@ export function GoalPicker({
   const list = interests ?? [];
   const q = query.trim().toLowerCase();
   // picked goals stay visible so they can be un-picked; a query searches the whole catalog by name or category
-  const matches = q ? list.filter((i) => i.name.toLowerCase().includes(q) || i.category.includes(q) || taken.has(i.slug)) : list;
+  const synonym = q ? suggestedSlugFor(q) : null; // "read books" also shows Reading
+  const matches = q
+    ? list.filter((i) => i.name.toLowerCase().includes(q) || i.category.includes(q) || i.slug === synonym || taken.has(i.slug))
+    : list;
   const shown = q || showAll ? matches : matches.slice(0, VISIBLE);
 
   return (

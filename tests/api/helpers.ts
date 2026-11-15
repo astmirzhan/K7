@@ -145,3 +145,15 @@ export function level(levels: LevelLike[], difficulty: number): LevelLike {
   if (!l) throw new Error(`no level with difficulty ${difficulty}`);
   return l;
 }
+
+/**
+ * Goals no seeded person has (custom rows), so map tests are independent of the demo world.
+ * Call cleanup() after the users are deleted (user_interests reference these rows).
+ */
+export async function isolatedGoals(n: number): Promise<{ slugs: string[]; cleanup: () => Promise<void> }> {
+  const tag = Math.random().toString(36).slice(2, 7);
+  const rows = Array.from({ length: n }, (_, i) => ({ slug: `zz-iso-${tag}-${i}`, name: `Iso ${tag} ${i}`, icon: '⭐', category: 'other', custom: true }));
+  const { error } = await admin().from('interests').insert(rows);
+  if (error) throw new Error(`isolated goals failed: ${error.message}`);
+  return { slugs: rows.map((r) => r.slug), cleanup: async () => void (await admin().from('interests').delete().in('slug', rows.map((r) => r.slug))) };
+}
