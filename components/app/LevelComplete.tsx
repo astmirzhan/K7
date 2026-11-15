@@ -1,17 +1,33 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Cloud } from '@/components/scene/Cloud';
 import { Coin } from '@/components/scene/Coin';
-import { Ninja } from '@/components/scene/Ninja';
 import { BADGES, NinjaBadge } from '@/components/scene/NinjaBadge';
 import { Button } from '@/components/ui/Button';
-import { Sign } from '@/components/ui/Sign';
+import { credentialId, linkedinAddUrl } from '@/lib/credential';
 import { DIFFICULTY_LABEL } from '@/lib/format';
 import { toast } from '@/lib/toast';
-import type { Avatar, Level } from '@/lib/types';
+import type { Avatar, Difficulty, Level } from '@/lib/types';
+import { earnedBadges } from './BadgeShelf';
 
-// 11 Level complete — full-screen moment with confetti coins.
-export function LevelComplete({ level, avatar, coins, onNext }: { level: Level; avatar: Avatar; coins: number; onNext: () => void }) {
+// "badge unlocked!" (Figma Badges & sharing A): the badge, its credential, LinkedIn + Instagram story, your badges.
+export function LevelComplete({
+  level,
+  coins,
+  userId,
+  levels,
+  onNext,
+}: {
+  level: Level;
+  avatar: Avatar;
+  coins: number;
+  userId: string;
+  levels: Level[];
+  onNext: () => void;
+}) {
+  const badgeRef = useRef<HTMLDivElement>(null);
+  const [busy, setBusy] = useState(false);
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -21,58 +37,119 @@ export function LevelComplete({ level, avatar, coins, onNext }: { level: Level; 
   }, []);
   if (typeof document === 'undefined') return null;
 
-  async function share() {
-    const text = `I earned the ${BADGES[level.difficulty].title} badge on K7: ${level.interest.name} · ${DIFFICULTY_LABEL[level.difficulty]} · ${level.progress.total}/${level.progress.total} stages`;
+  const d = level.difficulty;
+  const badge = BADGES[d];
+  const certId = credentialId(userId, level.interest.slug, d);
+  const issued = new Date();
+  const issuedText = issued.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
+  const title = `${level.interest.name} — ${badge.title} (${DIFFICULTY_LABEL[d]})`;
+  const earned = earnedBadges(levels);
+  earned.add(d);
+
+  function addToLinkedin() {
+    window.open(linkedinAddUrl({ name: title, certId, certUrl: window.location.origin, issued }), '_blank', 'noopener,noreferrer');
+  }
+
+  /** Transparent 1080×1920 PNG: "LEVEL COMPLETE", the badge, the goal and the credential. */
+  async function instagramStory() {
+    const svg = badgeRef.current?.querySelector('svg');
+    if (!svg) return;
+    setBusy(true);
     try {
-      if (navigator.share) await navigator.share({ text, url: window.location.origin });
-      else {
-        await navigator.clipboard.writeText(`${text} — ${window.location.origin}`);
-        toast('Copied to clipboard', { tone: 'success' });
+      const canvas = document.createElement('canvas');
+      canvas.width = 1080;
+      canvas.height = 1920;
+      const ctx = canvas.getContext('2d')!;
+      const css = getComputedStyle(document.documentElement);
+      const display = css.getPropertyValue('--font-display').trim() || 'monospace';
+      const label = css.getPropertyValue('--font-label').trim() || 'monospace';
+      const clone = svg.cloneNode(true) as SVGSVGElement;
+      clone.setAttribute('width', '640');
+      clone.setAttribute('height', String(Math.round((640 * 112) / 100)));
+      const img = new Image();
+      img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(new XMLSerializer().serializeToString(clone))}`;
+      await img.decode();
+      const text = (t: string, y: number, size: number, font: string, color: string) => {
+        ctx.font = `${size}px ${font}`;
+        ctx.textAlign = 'center';
+        ctx.lineWidth = size / 6;
+        ctx.strokeStyle = '#2e1b5b';
+        ctx.strokeText(t, 540, y);
+        ctx.fillStyle = color;
+        ctx.fillText(t, 540, y);
+      };
+      text('LEVEL', 380, 150, display, '#ffffff');
+      text('COMPLETE', 520, 150, display, '#ffffff');
+      ctx.drawImage(img, 220, 600, 640, Math.round((640 * 112) / 100));
+      text(`${level.interest.name} · ${DIFFICULTY_LABEL[d]}`, 1420, 96, display, '#ffffff');
+      ctx.fillStyle = '#2e1b5b';
+      ctx.fillRect(220, 1480, 640, 90);
+      ctx.font = `40px ${label}`;
+      ctx.fillStyle = '#ffc803';
+      ctx.textAlign = 'center';
+      ctx.fillText(`K7 · ${certId}`, 540, 1540);
+      const blob: Blob = await new Promise((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('Could not make the image'))), 'image/png'));
+      const file = new File([blob], `k7-${badge.title.toLowerCase().replace(' ', '-')}.png`, { type: 'image/png' });
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: badge.title });
+      } else {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(file);
+        a.download = file.name;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        toast('Story image saved. Post it from your gallery.', { tone: 'success' });
       }
-    } catch {
-      /* cancelled */
+    } catch (e) {
+      if ((e as Error).name !== 'AbortError') toast('Could not make the story image. Try again.', { tone: 'error' });
+    } finally {
+      setBusy(false);
     }
   }
 
   return createPortal(
-    <div data-testid="level-complete" role="dialog" aria-modal="true" aria-label="Level complete" className="fixed inset-0 z-[65] overflow-y-auto bg-[linear-gradient(180deg,var(--color-sky)_0%,#9fb4e4_45%,#c9e3c9_72%,var(--color-sky-low)_100%)]">
+    <div data-testid="level-complete" role="dialog" aria-modal="true" aria-label="Badge unlocked" className="fixed inset-0 z-[65] overflow-y-auto bg-[linear-gradient(180deg,var(--color-sky)_0%,#9fb4e4_45%,#c9e3c9_72%,var(--color-sky-low)_100%)]">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        <Cloud width={110} className="absolute left-[8%] top-[8%]" />
+        <Cloud width={140} className="absolute right-[6%] top-[14%]" />
         {Array.from({ length: 18 }).map((_, i) => (
-          <span
-            key={i}
-            className="k7-confetti absolute top-0"
-            style={{ left: `${(i * 53) % 100}%`, animation: `k7-confetti ${2.6 + (i % 5) * 0.4}s linear ${(i % 7) * 0.25}s both` }}
-          >
+          <span key={i} className="k7-confetti absolute top-0" style={{ left: `${(i * 53) % 100}%`, animation: `k7-confetti ${2.6 + (i % 5) * 0.4}s linear ${(i % 7) * 0.25}s both` }}>
             <Coin size={14 + (i % 3) * 6} />
           </span>
         ))}
       </div>
-      <div className="relative mx-auto flex min-h-dvh max-w-[720px] flex-col items-center justify-center gap-5 px-4 py-10 text-center">
-        <h1 className="k7-title text-[64px] md:text-[88px]">level complete!</h1>
-        <p className="k7-label text-[12px]">
-          {level.interest.name} · {DIFFICULTY_LABEL[level.difficulty]} · {level.progress.total} / {level.progress.total} stages
+      <div className="relative mx-auto flex min-h-dvh max-w-[720px] flex-col items-center justify-center gap-4 px-4 py-10 text-center">
+        <h1 className="k7-title text-[56px] md:text-[80px]">badge unlocked!</h1>
+        <p className="k7-label text-[11px]">
+          {level.interest.name} · {DIFFICULTY_LABEL[d]} · {level.progress.total} / {level.progress.total} stages
         </p>
-        <div className="flex items-end gap-4">
-          <div className="k7-outline k7-shadow rounded-[16px] bg-[#e8f6d0] p-4">
-            <Ninja avatar={avatar} size={88} />
-          </div>
-          <div className="k7-pop flex flex-col items-center" data-testid="level-badge">
-            <NinjaBadge difficulty={level.difficulty} earned size={112} />
-            <span className="font-display text-[24px] leading-none" style={{ color: BADGES[level.difficulty].name }}>
-              {BADGES[level.difficulty].title}
-            </span>
-          </div>
+        <div ref={badgeRef} className="k7-pop" data-testid="level-badge">
+          <NinjaBadge difficulty={d} earned size={200} />
         </div>
-        {avatar.name ? <p className="k7-label -mt-2 text-[11px]">{avatar.name} levelled up</p> : null}
-        <Sign className="-mt-2">
-          <p className="font-display text-[40px] leading-none text-yellow">+{coins}</p>
-          <p className="k7-label text-[10px] text-white">coins earned</p>
-        </Sign>
+        <p data-testid="credential" className="k7-label flex flex-wrap justify-center gap-x-4 gap-y-1 rounded-[10px] border-[3px] border-ink bg-ink px-4 py-2 text-[10px] text-white">
+          <span style={{ color: badge.name }}>{badge.title}</span>
+          <span>Credential {certId}</span>
+          <span>Issued {issuedText}</span>
+          <span className="flex items-center gap-1 text-yellow">
+            <Coin size={12} /> +{coins}
+          </span>
+        </p>
         <div className="flex flex-wrap justify-center gap-3">
-          <Button variant="secondary" onClick={share}>
-            share card
+          <Button onClick={addToLinkedin} data-testid="add-to-linkedin">
+            add to linkedin
           </Button>
-          <Button onClick={onNext}>next goal</Button>
+          <Button variant="secondary" pending={busy} onClick={() => void instagramStory()} data-testid="instagram-story">
+            instagram story
+          </Button>
+          <Button variant="secondary" onClick={onNext}>
+            next goal
+          </Button>
+        </div>
+        <div className="mt-2 flex items-center gap-2">
+          <span className="k7-label text-[10px]">Your badges {earned.size} / 3</span>
+          {([1, 3, 5] as Difficulty[]).map((x) => (
+            <NinjaBadge key={x} difficulty={x} earned={earned.has(x)} size={34} />
+          ))}
         </div>
       </div>
     </div>,
