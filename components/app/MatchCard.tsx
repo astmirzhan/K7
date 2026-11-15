@@ -9,7 +9,7 @@ import { Field, Textarea } from '@/components/ui/Field';
 import { Modal } from '@/components/ui/Modal';
 import { Panel } from '@/components/ui/Panel';
 import { api, ApiRequestError } from '@/lib/api';
-import { DIFFICULTY_LABEL } from '@/lib/format';
+import { DIFFICULTY_LABEL, matchReason } from '@/lib/format';
 import { invalidate } from '@/lib/hooks';
 import { toast } from '@/lib/toast';
 import type { MatchCard as MatchCardData, SharedInterest } from '@/lib/types';
@@ -166,6 +166,7 @@ export function MatchCard({ card, onGone }: { card: MatchCardData; onGone?: () =
         </div>
       ) : null}
 
+      <p className="text-[13px] font-semibold text-leaf">{matchReason(sharedInterests.map((s) => s.name), sameCity)}</p>
       {user.bio ? <p className="text-[14px] text-ink/85">{user.bio}</p> : null}
 
       <ul className="flex flex-wrap gap-2" aria-label="Shared interests">
