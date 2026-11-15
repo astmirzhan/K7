@@ -211,11 +211,13 @@ test('GP-5 co-op: A waits for B, B completes → both done, level complete, feed
   await page.getByRole('button', { name: /next goal/i }).click();
   await expect.poll(() => coins(page), { timeout: 15_000 }).toBe(8); // 4 + 2 photo + 1 stage + 1 co-op bonus
 
+  // co-op reveal: one feed card with both partners' photos side by side
   await page.goto('/feed');
-  const items = page.getByTestId('feed-item').filter({ hasText: 'with ' });
-  await expect(items.first()).toBeVisible({ timeout: 20_000 });
-  await expect(items.filter({ hasText: 'with Judge A' }).first()).toBeVisible();
-  await expect(items.filter({ hasText: 'with Test Ninja' }).first()).toBeVisible();
+  const reveal = page.getByTestId('feed-item').filter({ hasText: 'Judge A & Test Ninja' }).or(
+    page.getByTestId('feed-item').filter({ hasText: 'Test Ninja & Judge A' }),
+  );
+  await expect(reveal.first()).toBeVisible({ timeout: 20_000 });
+  await expect(reveal.first().locator('img')).toHaveCount(2);
 });
 
 test('GP-6 paywall: Medium stage → "Unlock Medium: Spanish — Starter" → Stripe Checkout', async () => {
