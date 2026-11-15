@@ -68,7 +68,7 @@ export function ProfileForm({
         <div className="grid grid-cols-[112px_1fr] gap-2">
           <Select id="state" data-testid="profile-state" value={value.state} onChange={(e) => set('state', e.target.value as UsState)} aria-label="State">
             <option value="" disabled>
-              TX
+              State
             </option>
             {US_STATES.map((s) => (
               <option key={s} value={s}>
