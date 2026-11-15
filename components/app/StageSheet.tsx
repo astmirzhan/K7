@@ -224,7 +224,7 @@ function Body({
         ) : null}
 
         {isCoop ? (
-          <Field label="Partner" error={fieldErr.partner}>
+          <Field label="Tag your buddy · the stage closes for both of you" error={fieldErr.partner}>
             {partners.length === 0 ? (
               <div className="flex flex-col items-start gap-2">
                 <p className="text-[14px] text-ink/70">Connect with a buddy on the map first — any buddy can do this stage with you.</p>
