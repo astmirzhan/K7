@@ -34,6 +34,8 @@ export function paywallCopy(reason: PaywallReason, plan: PaidPlan, context?: str
       return { title: 'You used your 3 free connects this month', cta };
     case 'steps':
       return { title: 'Step-by-step plan for every stage', cta };
+    case 'icebreaker':
+      return { title: 'AI icebreakers: 3 first messages for every buddy', cta };
     default:
       return { title: 'Upgrade to continue', cta };
   }

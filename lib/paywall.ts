@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from 'react';
 import type { PaidPlan } from './types';
 
-export type PaywallReason = 'level' | 'map' | 'connects' | 'steps' | 'generic';
+export type PaywallReason = 'level' | 'map' | 'connects' | 'steps' | 'icebreaker' | 'generic';
 
 export interface PaywallState {
   open: boolean;
@@ -42,6 +42,7 @@ export function usePaywall(): PaywallState {
 /** Which benefit to pitch when a 402 comes from this API path. */
 export function reasonFromPath(path: string): PaywallReason {
   if (path.startsWith('/api/stages/')) return 'level';
+  if (path.includes('/icebreaker')) return 'icebreaker';
   if (path.startsWith('/api/connections')) return 'connects';
   if (path.startsWith('/api/map')) return 'map';
   return 'generic';
