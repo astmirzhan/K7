@@ -46,6 +46,11 @@ function Inner({ me }: { me: OnboardedMe }) {
   const states = useMapStates();
   const users = useMapUsers(selected);
   const counts = useMemo(() => new Map((states.data ?? []).map((s) => [s.state, s.count])), [states.data]);
+  const totals = useMemo(() => new Map((states.data ?? []).map((s) => [s.state, s.total ?? s.count])), [states.data]);
+  // nobody shares my goals anywhere: show how many people are on K7 instead of an empty map
+  const noMatches = !!states.data && states.data.every((s) => s.count === 0) && states.data.some((s) => (s.total ?? 0) > 0);
+  const everyone = [...totals.values()].reduce((a, b) => a + b, 0);
+  const myGoals = me.interests.map((i) => i.interest.name);
 
   const items = useMemo(() => {
     const all = users.data?.items ?? [];
@@ -84,7 +89,8 @@ function Inner({ me }: { me: OnboardedMe }) {
         ) : (
           <Panel tone="mist" shadow="md" className="relative overflow-hidden p-0">
             <UsMap
-              counts={counts}
+              counts={noMatches ? totals : counts}
+              muted={noMatches}
               selected={selected}
               myState={me.state}
               zoomed={zoomed}
@@ -122,12 +128,17 @@ function Inner({ me }: { me: OnboardedMe }) {
               >
                 {US_STATES.map((st) => (
                   <option key={st} value={st}>
-                    {STATE_NAMES[st]} · {counts.get(st) ?? 0}
+                    {STATE_NAMES[st]} · {(noMatches ? totals : counts).get(st) ?? 0}
                   </option>
                 ))}
               </select>
             </div>
             {states.isLoading && !states.data ? <p className="k7-label mt-2 text-center text-ink/60">Counting people…</p> : null}
+            {noMatches ? (
+              <div data-testid="map-no-matches" className="absolute inset-x-3 bottom-3 rounded-[10px] border-[3px] border-ink bg-white/95 px-3 py-2 text-[13px] md:inset-x-5 md:bottom-5">
+                <span className="font-semibold">Nobody shares your goals yet.</span> {everyone} people are on K7. Grey numbers show everyone; you match people who have one of your goals.
+              </div>
+            ) : null}
           </Panel>
         )}
 
@@ -151,7 +162,7 @@ function Inner({ me }: { me: OnboardedMe }) {
             {interestName ? <span className="text-ink/60"> · {interestName}</span> : null}
           </h2>
           <span className="k7-label text-ink/70">
-            {counts.get(selected) ?? 0} total
+            {(noMatches ? totals : counts).get(selected) ?? 0} total
           </span>
         </div>
 
@@ -164,11 +175,13 @@ function Inner({ me }: { me: OnboardedMe }) {
           </>
         ) : items.length === 0 ? (
           <EmptyState
-            title={hidden > 0 ? 'More people with Starter' : `Nobody here yet`}
+            title={hidden > 0 ? 'More people with Starter' : noMatches ? 'No shared goals yet' : `Nobody here yet`}
             text={
               hidden > 0
                 ? `${hidden} more ${hidden === 1 ? 'person' : 'people'} in ${STATE_NAMES[selected]} share your interests.`
-                : interestName
+                : noMatches
+                  ? `${totals.get(selected) ?? 0} people in ${STATE_NAMES[selected]} are on K7, but nobody has ${myGoals.join(', ')} yet. You match people who share one goal: suggested goals like Running, Reading or Spanish have the most people.`
+                  : interestName
                   ? `Be the first in ${STATE_NAMES[selected]} with ${interestName}. Try another state or interest.`
                   : `Pick another state or come back later — new people join every day.`
             }

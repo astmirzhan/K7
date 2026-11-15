@@ -51,6 +51,7 @@ export function UsMap({
   selected,
   myState,
   zoomed,
+  muted = false,
   pins,
   onSelect,
   onPin,
@@ -59,6 +60,8 @@ export function UsMap({
   selected: UsState;
   myState: UsState;
   zoomed: boolean;
+  /** true = nobody shares my goals: counts are everyone on K7, drawn in grey */
+  muted?: boolean;
   pins: MapPin[];
   onSelect: (s: UsState) => void;
   onPin?: (id: string) => void;
@@ -93,7 +96,8 @@ export function UsMap({
   }, [pins, all, view.k]);
 
   // game palette: pale meadow, grass, forest; the busiest states glow like coins
-  const heat = (n: number) => (n === 0 ? '#d7ebbd' : n >= max * 0.6 ? '#ffc803' : n >= max * 0.25 ? '#7fc35a' : '#a6d86a');
+  const heat = (n: number) =>
+    muted ? (n === 0 ? '#d7ebbd' : '#c4dca8') : n === 0 ? '#d7ebbd' : n >= max * 0.6 ? '#ffc803' : n >= max * 0.25 ? '#7fc35a' : '#a6d86a';
   const s = 1 / view.k; // keep strokes, labels and pins the same size at any zoom
 
   return (
@@ -152,7 +156,7 @@ export function UsMap({
           return (
             <g key={`b-${st.code}`} transform={`translate(${st.centroid[0]} ${st.centroid[1]})`} pointerEvents="none">
               <rect x={-w / 2 + 2.5 * s} y={-h / 2 + 3 * s} width={w} height={h} fill="#2e1b5b" />
-              <rect x={-w / 2} y={-h / 2} width={w} height={h} fill={isSel ? '#ffc803' : '#ffffff'} stroke="#2e1b5b" strokeWidth={2.5 * s} />
+              <rect x={-w / 2} y={-h / 2} width={w} height={h} fill={isSel ? '#ffc803' : muted ? '#eef0fb' : '#ffffff'} stroke="#2e1b5b" strokeWidth={2.5 * s} />
               <circle cx={-w / 2 + 10 * s} cy={0} r={5 * s} fill="#ffc803" stroke="#2e1b5b" strokeWidth={2 * s} />
               <text x={5 * s} y={6.5 * s} textAnchor="middle" fontSize={20 * s} fill="#2e1b5b" fontFamily="var(--font-display)">
                 {label}
