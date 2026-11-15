@@ -155,3 +155,18 @@ describe('socialHandle', () => {
     expect(socialHandle('not a url')).toBeNull();
   });
 });
+
+describe('badge credentials', () => {
+  it('builds a stable credential id and a LinkedIn add-certification link', async () => {
+    const { credentialId, linkedinAddUrl } = await import('../../lib/credential');
+    const id = credentialId('user-1', 'drawing', 1);
+    expect(id).toMatch(/^K7-DRA-E-[0-9A-F]{6}$/);
+    expect(credentialId('user-1', 'drawing', 1)).toBe(id);
+    expect(credentialId('user-2', 'drawing', 1)).not.toBe(id);
+    const url = new URL(linkedinAddUrl({ name: 'Drawing — Bronze Ninja (Easy)', certId: id, certUrl: 'https://k7.app', issued: new Date('2026-11-15') }));
+    expect(url.hostname).toBe('www.linkedin.com');
+    expect(url.searchParams.get('organizationName')).toBe('K7');
+    expect(url.searchParams.get('certId')).toBe(id);
+    expect(url.searchParams.get('issueMonth')).toBe('11');
+  });
+});
