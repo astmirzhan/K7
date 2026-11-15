@@ -105,7 +105,7 @@ export default function OnboardingPage() {
         socialUrl: p.socialUrl.trim(),
         bio: p.bio.trim(),
       },
-      interests: state.interests,
+      interests: state.interests.map(({ slug, difficulty }) => ({ slug, difficulty })),
     };
     try {
       const res = await api.onboarding(body);

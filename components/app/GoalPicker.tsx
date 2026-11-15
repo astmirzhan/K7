@@ -2,14 +2,17 @@
 import { useState } from 'react';
 import { Coin } from '@/components/scene/Coin';
 import { CrossIcon } from '@/components/scene/Icons';
+import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Input } from '@/components/ui/Field';
+import { api } from '@/lib/api';
+import { toast } from '@/lib/toast';
 import { DIFFICULTY_TONE } from '@/components/ui/DifficultyBadge';
 import { Skeleton } from '@/components/ui/States';
 import type { Difficulty, Interest } from '@/lib/types';
 
 // 03 Pick 3 goals: chips of the catalog + three Goal cards (Hard / Medium / Easy).
-export type GoalPick = { slug: string; difficulty: Difficulty };
+export type GoalPick = { slug: string; difficulty: Difficulty; name?: string }; // name kept for typed goals
 const SLOTS: Array<{ difficulty: Difficulty; label: string; stages: number }> = [
   { difficulty: 5, label: 'Hard', stages: 10 },
   { difficulty: 3, label: 'Medium', stages: 6 },
@@ -31,23 +34,40 @@ export function GoalPicker({
   const [showAll, setShowAll] = useState(false);
   const [query, setQuery] = useState('');
   const bySlug = new Map((interests ?? []).map((i) => [i.slug, i]));
+  const [adding, setAdding] = useState(false);
+  const nameOf = (p: GoalPick) => bySlug.get(p.slug)?.name ?? p.name ?? p.slug;
   const taken = new Set(value.map((v) => v.slug));
 
-  function toggle(slug: string) {
+  function toggle(slug: string, name?: string) {
     if (taken.has(slug)) return onChange(value.filter((v) => v.slug !== slug));
     const free = SLOTS.find((s) => !value.some((v) => v.difficulty === s.difficulty));
     if (!free) return;
-    onChange([...value, { slug, difficulty: free.difficulty }]);
+    onChange([...value, { slug, difficulty: free.difficulty, ...(name ? { name } : {}) }]);
   }
 
-  /** Move the interest in this slot one slot down (Hard → Medium → Easy → Hard), swapping with what is there. */
-  function rotate(difficulty: Difficulty) {
-    const order = SLOTS.map((s) => s.difficulty);
-    const i = order.indexOf(difficulty);
-    const next = order[(i + 1) % order.length]!;
+  /** The person picks the difficulty; if another goal already has it, the two swap. */
+  function setDifficulty(slug: string, difficulty: Difficulty) {
+    const mine = value.find((v) => v.slug === slug);
+    if (!mine || mine.difficulty === difficulty) return;
     onChange(
-      value.map((v) => (v.difficulty === difficulty ? { ...v, difficulty: next } : v.difficulty === next ? { ...v, difficulty } : v)),
+      value.map((v) => (v.slug === slug ? { ...v, difficulty } : v.difficulty === difficulty ? { ...v, difficulty: mine.difficulty } : v)),
     );
+  }
+
+  /** A goal that is not in the suggestions: the server returns the matching goal or creates it. */
+  async function addTyped() {
+    const name = query.trim();
+    if (name.length < 2 || value.length >= 3) return;
+    setAdding(true);
+    try {
+      const goal = await api.customInterest({ name });
+      if (!taken.has(goal.slug)) toggle(goal.slug, goal.name);
+      setQuery('');
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Something went wrong. Try again.', { tone: 'error' });
+    } finally {
+      setAdding(false);
+    }
   }
 
   const list = interests ?? [];
@@ -59,15 +79,26 @@ export function GoalPicker({
   return (
     <div className="flex flex-col items-center gap-6">
       <div className="w-full max-w-[420px]">
-        <Input
-          type="search"
-          aria-label="Search goals"
-          data-testid="goal-search"
-          placeholder="Search 30 goals: yoga, chess, piano…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="bg-white text-center"
-        />
+        <form
+          className="flex gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const exact = list.find((i) => i.name.toLowerCase() === q);
+            if (exact) toggle(exact.slug);
+            else void addTyped();
+          }}
+        >
+          <Input
+            type="search"
+            aria-label="Search goals or type your own"
+            data-testid="goal-search"
+            maxLength={30}
+            placeholder="Search or type your own goal"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="bg-white text-center"
+          />
+        </form>
       </div>
       <div className="flex max-w-[960px] flex-wrap justify-center gap-2">
         {!interests
@@ -78,8 +109,17 @@ export function GoalPicker({
                 {i.name}
               </Chip>
             ))}
-        {interests && q && matches.length === 0 ? (
-          <p className="text-[14px] text-ink/70">No goal called “{query.trim()}” yet. Try a close one, like running or drawing.</p>
+        {interests && q.length >= 2 && !list.some((i) => i.name.toLowerCase() === q) ? (
+          <Button
+            size="sm"
+            variant="ink"
+            pending={adding}
+            disabled={value.length >= 3}
+            onClick={() => void addTyped()}
+            data-testid="goal-add-custom"
+          >
+            + add “{query.trim()}” as my goal
+          </Button>
         ) : null}
         {interests && !q && list.length > VISIBLE ? (
           <Chip onClick={() => setShowAll((s) => !s)}>{showAll ? 'fewer' : `+ ${list.length - VISIBLE} more`}</Chip>
@@ -89,7 +129,7 @@ export function GoalPicker({
       <div className="grid w-full max-w-[960px] grid-cols-1 gap-4 md:grid-cols-3">
         {SLOTS.map((slot) => {
           const pick = value.find((v) => v.difficulty === slot.difficulty);
-          const interest = pick ? bySlug.get(pick.slug) : undefined;
+          const interest = pick ? { slug: pick.slug, name: nameOf(pick) } : undefined;
           const tone = DIFFICULTY_TONE[slot.difficulty];
           return (
             <div
@@ -113,11 +153,23 @@ export function GoalPicker({
                     <p className="text-[13px] text-ink/70">
                       {slot.difficulty} coin{slot.difficulty > 1 ? 's' : ''} per stage
                     </p>
-                    {value.length > 1 ? (
-                      <button type="button" onClick={() => rotate(slot.difficulty)} className="k7-label mt-auto self-start text-ink/70 underline underline-offset-4 hover:text-ink">
-                        swap ↓
-                      </button>
-                    ) : null}
+                    <div role="radiogroup" aria-label={`Difficulty for ${interest.name}`} className="mt-auto flex gap-1.5 pt-1">
+                      {SLOTS.map((d) => (
+                        <button
+                          key={d.difficulty}
+                          type="button"
+                          role="radio"
+                          aria-checked={d.difficulty === slot.difficulty}
+                          data-testid={`set-difficulty-${interest.slug}-${d.difficulty}`}
+                          onClick={() => setDifficulty(interest.slug, d.difficulty)}
+                          className={`k7-label h-8 rounded-[6px] border-[3px] border-ink px-2 text-[9px] ${
+                            d.difficulty === slot.difficulty ? 'bg-ink text-yellow' : 'bg-white text-ink hover:bg-mist'
+                          }`}
+                        >
+                          {d.label}
+                        </button>
+                      ))}
+                    </div>
                   </>
                 ) : (
                   <p className="my-auto text-[14px] text-ink/60">Pick a goal above for the {slot.label.toLowerCase()} slot.</p>
