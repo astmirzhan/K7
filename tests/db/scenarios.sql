@@ -204,4 +204,14 @@ update profiles set plan = 'crew', coins = 9999 where id = auth.uid();
 reset role;
 select pg_temp.ok((select plan from profiles where id = :A) = 'starter' and testkit.coins(:A) = 9, 'T12 client cannot change plan or coins');
 
+-- ===== T13 custom goals: typed goals live in the catalog as custom and match like curated ones =====
+insert into public.interests (slug, name, icon, category, custom) values ('bouldering', 'Bouldering', '⭐', 'other', true);
+insert into auth.users (id, email) values
+  ('00000000-0000-0000-0000-0000000000c1', 'c1@example.com'),
+  ('00000000-0000-0000-0000-0000000000c2', 'c2@example.com');
+select public.create_onboarding('00000000-0000-0000-0000-0000000000c1', testkit.profile('Kim', 'WY', 'Casper', 'solo'), testkit.interests('bouldering','french','piano'), testkit.stages('bouldering','french','piano'));
+select public.create_onboarding('00000000-0000-0000-0000-0000000000c2', testkit.profile('Lee', 'WY', 'Casper', 'solo'), testkit.interests('chess','bouldering','yoga'), testkit.stages('chess','bouldering','yoga'));
+select pg_temp.ok(exists (select 1 from public.match_users('00000000-0000-0000-0000-0000000000c1') where user_id = '00000000-0000-0000-0000-0000000000c2'), 'T13 two people with the same custom goal match');
+select pg_temp.ok((select count(*) from public.interests where not custom) = 30, 'T13 curated catalog stays 30');
+
 \echo 'ALL DB SCENARIOS PASSED'
