@@ -11,12 +11,16 @@ export function credentialId(userId: string, interestSlug: string, difficulty: D
   return `K7-${code}-${LETTER[difficulty]}-${hex}`;
 }
 
-/** LinkedIn "Add licence or certification" form, prefilled. */
-export function linkedinAddUrl(opts: { name: string; certId: string; certUrl: string; issued: Date }): string {
+/**
+ * LinkedIn "Add licence or certification" form, prefilled. LinkedIn shows a logo only for a Company Page:
+ * with `orgId` (the page's numeric id) the credential gets the K7 logo, without it LinkedIn shows a grey placeholder.
+ */
+export function linkedinAddUrl(opts: { name: string; certId: string; certUrl: string; issued: Date; orgId?: string }): string {
+  const org: Record<string, string> = opts.orgId ? { organizationId: opts.orgId } : { organizationName: 'K7' };
   const q = new URLSearchParams({
     startTask: 'CERTIFICATION_NAME',
     name: opts.name,
-    organizationName: 'K7',
+    ...org,
     issueYear: String(opts.issued.getFullYear()),
     issueMonth: String(opts.issued.getMonth() + 1),
     certUrl: opts.certUrl,
