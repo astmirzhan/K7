@@ -2,7 +2,6 @@
 import { Ninja, PRESET_COLORS } from '@/components/scene/Ninja';
 import { PlusIcon } from '@/components/scene/Icons';
 import { AVATAR_ACCESSORIES, AVATAR_PRESETS, type Avatar } from '@/lib/types';
-import { ChoiceRow } from '@/components/ui/Field';
 
 // 02 Choose your ninja: 4 preset tiles + "yours" builder.
 const SUITS = ['#3f8f4a', '#2e1b5b', '#3b6fd6', '#8b5ad6', '#d84b6a', '#2f6b45'];
@@ -55,17 +54,40 @@ export function AvatarPicker({ value, onChange }: { value: Avatar | null; onChan
       </div>
 
       {isCustom ? (
-        <div className="k7-outline k7-shadow-sm grid w-full max-w-[640px] gap-4 rounded-[14px] bg-white p-5 sm:grid-cols-3">
-          <Swatches label="Suit" colors={SUITS} value={custom.suit} onPick={(suit) => onChange({ ...custom, suit })} />
-          <Swatches label="Band" colors={BANDS} value={custom.band} onPick={(band) => onChange({ ...custom, band })} />
-          <div className="flex flex-col gap-2">
-            <span className="k7-label">Accessory</span>
-            <ChoiceRow
-              size="sm"
-              options={AVATAR_ACCESSORIES.map((a) => ({ value: a, label: a }))}
-              value={custom.accessory}
-              onChange={(accessory) => onChange({ ...custom, accessory })}
-            />
+        <div className="k7-outline k7-shadow-sm grid w-full max-w-[760px] gap-5 rounded-[14px] bg-white p-5 sm:grid-cols-[180px_1fr]">
+          <div className="flex flex-col items-center gap-2">
+            <div data-testid="avatar-preview" className="flex h-[180px] w-[180px] items-center justify-center rounded-[14px] border-4 border-ink bg-[#e8f6d0]">
+              <Ninja avatar={custom} size={124} />
+            </div>
+            <span className="k7-label text-ink/70">your ninja</span>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Swatches label="Suit" colors={SUITS} value={custom.suit} onPick={(suit) => onChange({ ...custom, suit })} />
+            <Swatches label="Band" colors={BANDS} value={custom.band} onPick={(band) => onChange({ ...custom, band })} />
+            <div className="flex flex-col gap-2 sm:col-span-2">
+              <span className="k7-label">Accessory</span>
+              <div role="radiogroup" className="flex flex-wrap gap-2">
+                {AVATAR_ACCESSORIES.map((a) => {
+                  const active = custom.accessory === a;
+                  return (
+                    <button
+                      key={a}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      data-testid={`accessory-${a}`}
+                      onClick={() => onChange({ ...custom, accessory: a })}
+                      className={`k7-label flex h-11 items-center gap-2 rounded-[8px] border-[3px] border-ink pl-1.5 pr-3 ${active ? 'bg-ink text-yellow' : 'bg-white text-ink hover:bg-mist'}`}
+                    >
+                      <span className="flex h-8 w-8 items-center justify-center rounded-[6px] bg-[#e8f6d0]">
+                        <Ninja avatar={{ ...custom, accessory: a }} size={22} />
+                      </span>
+                      {a}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       ) : null}

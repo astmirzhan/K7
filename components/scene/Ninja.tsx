@@ -36,37 +36,50 @@ export function avatarColors(avatar: Avatar): { suit: string; band: string; acce
   return { suit: avatar.suit, band: avatar.band, accessory: avatar.accessory };
 }
 
+// Accessories are small sprites with an ink outline, drawn on top of the ninja. They may stick out of the
+// 16 x 16 grid a little (the svg has overflow visible), like a sword held at the side.
+// Palette: o ink · s steel · S steel shade · g gold · h handle · w wood · W wood knot · k skin · p cushion
+const ACC_COLORS: Record<string, string> = {
+  o: '#2e1b5b', s: '#e4e9f7', S: '#9aa4c7', g: '#ffc803', h: '#5a3a1a', w: '#b07a3e', W: '#6b4420', k: '#d8a06c', p: '#ff6fa8',
+};
+type Sprite = { x: number; y: number; rows: string[] };
+export const ACCESSORY_SPRITES: Record<string, Sprite> = {
+  // blade up, guard and grip in the right hand
+  katana: {
+    x: 14, y: -1,
+    rows: ['..o..', '.oso.', '.oso.', '.oso.', '.oso.', '.oso.', '.oSo.', '.oSo.', '.oSo.', 'ogggo', '.oho.', 'kkho.', 'kkho.', '.oho.', '..o..'],
+  },
+  // tall wooden staff in the left hand
+  staff: {
+    x: -3, y: -1,
+    rows: ['.o..', 'owo.', 'owo.', 'oWo.', 'owo.', 'owo.', 'owo.', 'oWo.', 'owo.', 'owo.', 'owo.', 'owkk', 'owkk', 'owo.', 'oWo.', 'owo.', '.o..'],
+  },
+  // throwing star next to the right hand
+  shuriken: {
+    x: 14, y: 6,
+    rows: ['...o...', '..oso..', '.osSso.', 'osSoSso', '.osSso.', '..oso..', '...o...'],
+  },
+  // band over the head, cushions over the ears
+  headphones: {
+    x: 2, y: -1,
+    rows: ['..oooooooo..', '.o........o.', '.o........o.', '.o........o.', 'opp......ppo', 'opp......ppo', '.oo......oo.'],
+  },
+};
+
 function Accessory({ kind }: { kind: string }) {
-  switch (kind) {
-    case 'katana':
-      return (
-        <>
-          <rect x="13" y="6" width="1" height="7" fill="#e9edff" />
-          <rect x="12.5" y="12" width="2" height="1" fill="#8a5a2b" />
-        </>
-      );
-    case 'staff':
-      return <rect x="1" y="3" width="1" height="12" fill="#8a5a2b" />;
-    case 'shuriken':
-      return (
-        <>
-          <rect x="13" y="8" width="3" height="1" fill="#c9d2f7" />
-          <rect x="14" y="7" width="1" height="3" fill="#c9d2f7" />
-          <rect x="14" y="8" width="1" height="1" fill="#2e1b5b" />
-        </>
-      );
-    case 'headphones':
-      return (
-        <>
-          <rect x="3" y="2" width="1" height="4" fill="#2e1b5b" />
-          <rect x="12" y="2" width="1" height="4" fill="#2e1b5b" />
-          <rect x="2" y="4" width="2" height="2" fill="#ff6fa8" />
-          <rect x="12" y="4" width="2" height="2" fill="#ff6fa8" />
-        </>
-      );
-    default:
-      return null;
-  }
+  const sprite = ACCESSORY_SPRITES[kind];
+  if (!sprite) return null;
+  return (
+    <>
+      {sprite.rows.flatMap((row, dy) =>
+        [...row].map((ch, dx) =>
+          ch === '.' ? null : (
+            <rect key={`a${dx}-${dy}`} x={sprite.x + dx} y={sprite.y + dy} width="1" height="1" fill={ACC_COLORS[ch]} />
+          ),
+        ),
+      )}
+    </>
+  );
 }
 
 export function Ninja({ avatar, size = 64, className = '' }: { avatar: Avatar; size?: number; className?: string }) {
@@ -74,7 +87,7 @@ export function Ninja({ avatar, size = 64, className = '' }: { avatar: Avatar; s
   const skin = '#d8a06c';
   const fill: Record<string, string> = { o: '#2e1b5b', s: c.suit, b: c.band, h: c.band, k: skin, w: '#ffffff' };
   return (
-    <svg viewBox="0 0 16 16" width={size} height={size} aria-hidden="true" className={`pixelated block shrink-0 ${className}`}>
+    <svg viewBox="0 0 16 16" width={size} height={size} aria-hidden="true" overflow="visible" className={`pixelated block shrink-0 overflow-visible ${className}`}>
       {GRID.flatMap((row, y) =>
         [...row].map((ch, x) => (ch === '.' ? null : <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill={fill[ch]} />)),
       )}

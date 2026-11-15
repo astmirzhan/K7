@@ -129,3 +129,16 @@ describe('matchReason', () => {
     expect(matchReason([], false)).toBe('');
   });
 });
+
+describe('avatar accessory sprites', () => {
+  it('are rectangular and use only known colors', async () => {
+    const { ACCESSORY_SPRITES } = await import('../../components/scene/Ninja');
+    for (const [name, sprite] of Object.entries(ACCESSORY_SPRITES)) {
+      const width = sprite.rows[0]!.length;
+      for (const row of sprite.rows) {
+        expect(row.length, `${name} row width`).toBe(width);
+        expect(row, `${name} colors`).toMatch(/^[.osSghwWkp]+$/);
+      }
+    }
+  });
+});
