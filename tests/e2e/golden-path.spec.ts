@@ -190,34 +190,26 @@ test('GP-4 connect: A requests B, B accepts, both get the social link and "find 
   await expect.poll(() => coins(b.page), { timeout: 15_000 }).toBe(2);
 });
 
-test('GP-5 co-op: A waits for B, B completes → both done, level complete, feed shows both photos', async () => {
+test('GP-5 co-op: A posts one photo tagging B → both done at once, level complete, feed shows it', async () => {
   const { page } = a;
   await openStage(page, 3);
   await page.getByTestId(`partner-option-${b.id}`).click();
   await page.getByTestId('stage-photo-input').setInputFiles(PHOTO);
   await page.getByTestId('stage-caption').fill('Together');
   await page.getByTestId('stage-complete').click();
-  await expect(page.getByTestId('waiting-partner')).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByTestId('waiting-partner')).toContainText('Test Ninja');
-
-  await openStage(b.page, 3);
-  await b.page.getByTestId(`partner-option-${a.id}`).click();
-  await b.page.getByTestId('stage-photo-input').setInputFiles(PHOTO);
-  await b.page.getByTestId('stage-complete').click();
-  await expect(b.page.getByTestId('level-complete')).toBeVisible({ timeout: 30_000 });
-
-  // A sees it on the next roadmap poll
   await expect(page.getByTestId('level-complete')).toBeVisible({ timeout: 30_000 });
   await page.getByRole('button', { name: /next goal/i }).click();
   await expect.poll(() => coins(page), { timeout: 15_000 }).toBe(8); // 4 + 2 photo + 1 stage + 1 co-op bonus
 
-  // co-op reveal: one feed card with both partners' photos side by side
+  // B was tagged: the co-op stage is done for B too, without a photo of B's own
+  await b.page.goto('/roadmap');
+  await expect(b.page.getByTestId('level-complete')).toBeVisible({ timeout: 30_000 });
+  await b.page.getByRole('button', { name: /next goal/i }).click();
+  await expect.poll(() => coins(b.page), { timeout: 15_000 }).toBe(4); // 2 + 1 stage + 1 co-op bonus
+
   await page.goto('/feed');
-  const reveal = page.getByTestId('feed-item').filter({ hasText: 'Judge A & Test Ninja' }).or(
-    page.getByTestId('feed-item').filter({ hasText: 'Test Ninja & Judge A' }),
-  );
-  await expect(reveal.first()).toBeVisible({ timeout: 20_000 });
-  await expect(reveal.first().locator('img')).toHaveCount(2);
+  const item = page.getByTestId('feed-item').filter({ hasText: 'with Test Ninja' });
+  await expect(item.first()).toBeVisible({ timeout: 20_000 });
 });
 
 test('GP-6 paywall: Medium stage → "Unlock Medium: Spanish — Starter" → Stripe Checkout', async () => {

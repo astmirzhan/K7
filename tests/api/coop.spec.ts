@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test';
-import type { CompleteStageResponse, Connection, FeedItem, Me } from '../../lib/types';
+import type { ApiError, CompleteStageResponse, Connection, FeedItem, Me } from '../../lib/types';
 import { Api, level, onboardedUser, roadmap, uploadPhoto, Users } from './helpers';
 
 const users = new Users();
 test.afterAll(() => users.cleanup());
 
-test('two users connect, both complete co-op with photos: waiting → done, ×2 coins, feed reveal', async ({ request }) => {
+test('co-op as tagging: one photo tagging a buddy closes the stage for both, coins for both, feed shows it', async ({ request }) => {
   const api = new Api(request);
   const a = await onboardedUser(users, api);
   const b = await onboardedUser(users, api);
@@ -36,49 +36,38 @@ test('two users connect, both complete co-op with photos: waiting → done, ×2 
   const aCoop = level(await roadmap(api, a.token), 1).stages[2]!;
   const bCoop = level(await roadmap(api, b.token), 1).stages[2]!;
   const aPhoto = await uploadPhoto(api, a.token, aCoop.id);
-  const first = await api.post<CompleteStageResponse>(
+  // tagging: A posts one photo and tags B, the co-op stage closes for both right away
+  const post = await api.post<CompleteStageResponse>(
     `/api/stages/${aCoop.id}/complete`,
     { photoPath: aPhoto, partnerId: b.id, caption: 'Together' },
     a.token,
   );
-  expect(first.status).toBe(200);
-  expect(first.body.waitingForPartner).toBe(true);
-  expect(first.body.stage.status).toBe('waiting_partner');
-  expect(first.body.stage.partner?.userId).toBe(b.id);
-  expect(first.body.coinsAwarded).toBe(2); // photo bonus only, stage coins wait for the partner
+  expect(post.status).toBe(200);
+  expect(post.body.waitingForPartner).toBe(false);
+  expect(post.body.levelCompleted).toBe(true);
+  expect(post.body.stage.status).toBe('done');
+  expect(post.body.stage.partner?.userId).toBe(b.id);
+  expect(post.body.coinsAwarded).toBe(4); // 2 photo + 1 stage + 1 coop bonus
 
-  // the co-op photo is hidden from the feed until both are done
-  const feedBefore = await api.get<FeedItem[]>('/api/feed', b.token);
-  expect(feedBefore.body.some((i) => i.author.userId === a.id)).toBe(false);
+  // B's co-op stage is already done; posting again is refused
+  const again = await api.post<ApiError>(`/api/stages/${bCoop.id}/complete`, { photoPath: 'x', partnerId: a.id }, b.token);
+  expect(again.status).toBe(409);
+  expect(again.body.error.code).toBe('STAGE_NOT_ACTIVE');
 
-  const bPhoto = await uploadPhoto(api, b.token, bCoop.id);
-  const second = await api.post<CompleteStageResponse>(
-    `/api/stages/${bCoop.id}/complete`,
-    { photoPath: bPhoto, partnerId: a.id },
-    b.token,
-  );
-  expect(second.status).toBe(200);
-  expect(second.body.waitingForPartner).toBe(false);
-  expect(second.body.levelCompleted).toBe(true);
-  expect(second.body.stage.status).toBe('done');
-  expect(second.body.coinsAwarded).toBe(4); // 2 photo + 1 stage + 1 coop bonus
-
-  // both: 1 (solo) + 1 (connect) + 2 (photo) + 1 (stage) + 1 (coop bonus) = 6
-  for (const u of [a, b]) {
+  // A: 1 + 1 + 2 photo + 1 + 1 = 6, B (tagged, no own photo): 1 + 1 + 1 + 1 = 4
+  for (const [u, coins] of [[a, 6], [b, 4]] as const) {
     const me = await api.get<Me>('/api/me', u.token);
-    expect(me.body.onboarded && me.body.coins).toBe(6);
+    expect(me.body.onboarded && me.body.coins).toBe(coins);
     const easy = level(await roadmap(api, u.token), 1);
     expect(easy.progress).toEqual({ done: 3, total: 3 });
     expect(easy.stages[2]!.status).toBe('done');
   }
 
-  // feed shows both photos "with <partner>"
-  const feed = await api.get<FeedItem[]>('/api/feed?scope=public', a.token);
+  // the feed shows the photo "with <partner>"
+  const feed = await api.get<FeedItem[]>('/api/feed?scope=public', b.token);
   expect(feed.status).toBe(200);
   const aItem = feed.body.find((i) => i.author.userId === a.id && i.kind === 'coop');
-  const bItem = feed.body.find((i) => i.author.userId === b.id && i.kind === 'coop');
   expect(aItem?.partner?.userId).toBe(b.id);
-  expect(bItem?.partner?.userId).toBe(a.id);
   expect(aItem?.photoUrl).toMatch(/^https?:\/\//);
   expect(aItem?.caption).toBe('Together');
 
@@ -87,7 +76,7 @@ test('two users connect, both complete co-op with photos: waiting → done, ×2 
   expect(mine.body).toHaveLength(1);
 });
 
-test('co-op partner must be an accepted connection sharing the interest', async ({ request }) => {
+test('co-op partner must be an accepted buddy', async ({ request }) => {
   const api = new Api(request);
   const a = await onboardedUser(users, api);
   const b = await onboardedUser(users, api);

@@ -112,23 +112,16 @@ select pg_temp.fails_with(format('select public.complete_stage(%L, %L, ''x/y/z.j
 select pg_temp.fails_with(format('select public.complete_stage(%L, %L, ''x/y/z.jpg'', null, ''public'', %L)', :A, testkit.stage(:A, 'running', 3), :C), 'PARTNER_INVALID'); -- no connection
 select pg_temp.fails_with(format('select public.complete_stage(%L, %L, ''x/y/z.jpg'', null, ''public'', %L)', :A, testkit.stage(:A, 'running', 3), :B), 'VALIDATION');      -- foreign path
 
-select public.complete_stage(:A, testkit.stage(:A, 'running', 3),
-  :A || '/' || testkit.stage(:A, 'running', 3) || '/p1.jpg', 'first run together', 'public', :B);
-select pg_temp.ok((select status from roadmap_stages where id = testkit.stage(:A, 'running', 3)) = 'waiting_partner', 'T7 A waits for partner');
-select pg_temp.ok(testkit.coins(:A) = 4, 'T7 A photo bonus +2 while waiting');
-select pg_temp.ok((select count(*) from public.feed_items(:C, 'public', 30)) = 0, 'T7 waiting co-op photo hidden from feed');
--- re-upload while waiting is allowed and does not pay the photo bonus twice
-select public.complete_stage(:A, testkit.stage(:A, 'running', 3),
-  :A || '/' || testkit.stage(:A, 'running', 3) || '/p2.jpg', 'retake', 'public', :B);
-select pg_temp.ok(testkit.coins(:A) = 4, 'T7 re-upload no double photo bonus');
-
-select pg_temp.ok((public.complete_stage(:B, testkit.stage(:B, 'running', 3),
-  :B || '/' || testkit.stage(:B, 'running', 3) || '/q.jpg', 'with Alice', 'public', :A))->>'levelCompleted' = 'true', 'T7 B level completed');
-select pg_temp.ok((select status from roadmap_stages where id = testkit.stage(:A, 'running', 3)) = 'done', 'T7 A coop done when B uploaded');
-select pg_temp.ok((select status from roadmap_stages where id = testkit.stage(:B, 'running', 3)) = 'done', 'T7 B coop done');
+-- tagging: A posts one photo and tags B, the co-op stage is done for both at once
+select pg_temp.ok((public.complete_stage(:A, testkit.stage(:A, 'running', 3),
+  :A || '/' || testkit.stage(:A, 'running', 3) || '/p1.jpg', 'first run together', 'public', :B))->>'levelCompleted' = 'true', 'T7 A level completed right away');
+select pg_temp.ok((select status from roadmap_stages where id = testkit.stage(:A, 'running', 3)) = 'done', 'T7 A coop done without waiting');
+select pg_temp.ok((select status from roadmap_stages where id = testkit.stage(:B, 'running', 3)) = 'done', 'T7 tagged B coop done too');
+select pg_temp.ok((select partner_id from roadmap_stages where id = testkit.stage(:B, 'running', 3)) = :A, 'T7 B stage remembers A as partner');
 select pg_temp.ok(testkit.coins(:A) = 6, 'T7 A coins: 1 + 1 + 2 photo + 1 stage + 1 coop bonus');
-select pg_temp.ok(testkit.coins(:B) = 6, 'T7 B coins: 1 + 1 + 2 photo + 1 stage + 1 coop bonus');
-select pg_temp.ok((select count(*) from public.feed_items(:C, 'public', 30)) = 2, 'T7 both co-op photos in feed');
+select pg_temp.ok(testkit.coins(:B) = 4, 'T7 B coins: 1 + 1 + 1 stage + 1 coop bonus (no photo of its own)');
+select pg_temp.fails_with(format('select public.complete_stage(%L, %L, ''x'', null, ''public'', %L)', :B, testkit.stage(:B, 'running', 3), :A), 'STAGE_NOT_ACTIVE');
+select pg_temp.ok((select count(*) from public.feed_items(:C, 'public', 30)) = 1, 'T7 the co-op photo is in the feed');
 select pg_temp.ok((select partner_name from public.feed_items(:C, 'public', 30) where author_id = :A) = 'Bob', 'T7 feed shows partner');
 
 -- ===== T8 ledger is the single source of truth, rewards are idempotent =====
@@ -145,9 +138,10 @@ select pg_temp.ok((select score from public.match_users(:A) where user_id = :C) 
 select pg_temp.ok((select user_id from public.match_users(:A) limit 1) = :C, 'T9 sorted by score desc');
 select pg_temp.ok(not exists (select 1 from public.match_users(:A) where user_id = :A), 'T9 never matches self');
 select pg_temp.ok((select people from public.nearby_counts(:A) where interest_slug = 'running') = 2, 'T9 nearby running in TX = B and F');
-update stage_reports set visibility = 'private' where user_id = :B;
-select pg_temp.ok((select count(*) from public.feed_items(:C, 'public', 30)) = 1, 'T9 private report hidden from others');
-select pg_temp.ok((select count(*) from public.feed_items(:B, 'mine', 30)) = 1, 'T9 private report visible in mine');
+update stage_reports set visibility = 'private' where user_id = :A;
+select pg_temp.ok((select count(*) from public.feed_items(:C, 'public', 30)) = 0, 'T9 private report hidden from others');
+select pg_temp.ok((select count(*) from public.feed_items(:A, 'mine', 30)) = 1, 'T9 private report visible in mine');
+update stage_reports set visibility = 'public' where user_id = :A;
 select pg_temp.ok((select social_url from public.list_connections(:A) where other_id = :B) is not null, 'T9 social_url revealed when accepted');
 select pg_temp.ok((select social_url from public.list_connections(:A) where other_id = :D) is null, 'T9 social_url hidden while pending');
 
@@ -168,12 +162,12 @@ select public.respond_connection(:D, (select id from connections where from_id =
 select public.complete_stage(:D, testkit.stage(:D, 'running', 1), null, null, 'public', null);
 select public.complete_stage(:D, testkit.stage(:D, 'running', 3),
   :D || '/' || testkit.stage(:D, 'running', 3) || '/d.jpg', '', 'public', :A);
-select pg_temp.ok((select status from roadmap_stages where id = testkit.stage(:D, 'running', 3)) = 'waiting_partner', 'T11 D waiting for A');
+select pg_temp.ok((select status from roadmap_stages where id = testkit.stage(:D, 'running', 3)) = 'done', 'T11 D co-op done at once (A had no open co-op stage)');
 select public.block_user(:A, :D);
 select pg_temp.ok(not exists (select 1 from public.match_users(:A) where user_id = :D), 'T11 blocked hidden for blocker');
 select pg_temp.ok(not exists (select 1 from public.match_users(:D) where user_id = :A), 'T11 blocker hidden for blocked');
 select pg_temp.ok((select status from connections where from_id = :A and to_id = :D) = 'declined', 'T11 connection declined');
-select pg_temp.ok((select status from roadmap_stages where id = testkit.stage(:D, 'running', 3)) = 'active', 'T11 waiting co-op released');
+
 select pg_temp.fails_with(format('select public.request_connection(%L, %L, ''running'')', :D, :A), 'NOT_FOUND');
 select pg_temp.fails_with(format('select public.block_user(%L, %L)', :A, :A), 'VALIDATION');
 
@@ -230,9 +224,7 @@ select pg_temp.ok((select status from roadmap_stages where id = testkit.stage('0
                and (select status from roadmap_stages where id = testkit.stage('00000000-0000-0000-0000-0000000000d2', 'baking', 2)) = 'done', 'T14 "Find a buddy" completes for both with any buddy');
 select public.complete_stage('00000000-0000-0000-0000-0000000000d1', testkit.stage('00000000-0000-0000-0000-0000000000d1', 'hiking', 3),
   '00000000-0000-0000-0000-0000000000d1/' || testkit.stage('00000000-0000-0000-0000-0000000000d1', 'hiking', 3) || '/a.jpg', null, 'public', '00000000-0000-0000-0000-0000000000d2');
-select public.complete_stage('00000000-0000-0000-0000-0000000000d2', testkit.stage('00000000-0000-0000-0000-0000000000d2', 'baking', 3),
-  '00000000-0000-0000-0000-0000000000d2/' || testkit.stage('00000000-0000-0000-0000-0000000000d2', 'baking', 3) || '/b.jpg', null, 'public', '00000000-0000-0000-0000-0000000000d1');
 select pg_temp.ok((select status from roadmap_stages where id = testkit.stage('00000000-0000-0000-0000-0000000000d1', 'hiking', 3)) = 'done'
-               and (select status from roadmap_stages where id = testkit.stage('00000000-0000-0000-0000-0000000000d2', 'baking', 3)) = 'done', 'T14 co-op pairs across different goals');
+               and (select status from roadmap_stages where id = testkit.stage('00000000-0000-0000-0000-0000000000d2', 'baking', 3)) = 'done', 'T14 one tagged photo closes co-op for both, across different goals');
 
 \echo 'ALL DB SCENARIOS PASSED'

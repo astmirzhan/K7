@@ -13,7 +13,7 @@ Zod 4.6, `stripe` 23, PostgreSQL 16/17.
 | Path | What | How it is verified |
 | --- | --- | --- |
 | `supabase/migrations/20261114000001_schema.sql` | Tables, indexes, RLS, `public_profiles` view, `stage-photos` bucket | `pnpm test:db` |
-| `supabase/migrations/20261114000002_functions.sql` | All atomic business logic (onboarding, stage completion, co-op, coins, connections, blocks, matching, feed) | `pnpm test:db`: 60+ assertions + race test (12 pairs completing co-op at the same instant) |
+| `supabase/migrations/20261114000002_functions.sql` | All atomic business logic (onboarding, stage completion, co-op, coins, connections, blocks, matching, feed) | `pnpm test:db`: 60+ assertions + race test (12 pairs tagging each other at the same instant: one post wins, no deadlocks, coins once) |
 | `supabase/migrations/20261114000003_interests.sql` | Catalog of 30 interests | `pnpm test:db` |
 | `tests/db/*` | Plain-Postgres test harness (no Docker, no Supabase) | — |
 | `lib/types.ts` | API contract | `tsc` |
@@ -213,7 +213,7 @@ Levels above the plan are visible with a lock (`Level.lockedByPlan`, `requiredPl
 - Skeleton (fixed, see `STAGE_SKELETON`): Easy `solo, connect, coop`; Medium `solo×3, connect, solo, coop`; Hard `solo×4, connect, solo×4, coop`.
 - Stage 1 of every level starts `active`, the rest `locked`; finishing stage *n* activates *n+1*.
 - `connect`: cannot be completed by hand; it is done automatically when the user has an accepted, non-blocked connection with someone who has this interest — at accept time, or the moment the stage activates.
-- `coop`: needs `partnerId` (accepted connection, partner has this interest) and a photo. Status becomes `waiting_partner`. When the partner completes **their** co-op stage of the same interest naming this user, both become `done`, both get ×2 coins. While waiting, re-submitting (new photo or other partner) is allowed and does not pay the photo bonus twice.
+- `coop` (tagging, migration `20261115000003`): needs `partnerId` (any accepted, non-blocked buddy) and a photo. The poster's stage is `done` at once with ×2 coins, and the tagged buddy's open co-op stage (same goal first, else their first open one) is `done` too with ×2 coins. If the buddy has no open co-op stage yet, only the poster's stage completes. `waiting_partner` is no longer entered (kept for old rows).
 - Co-op photos appear in the feed only when both are done (the "reveal").
 - Content: AI (`generateAiStages`, 8 s timeout, Zod-validated) per interest in parallel; template fallback per interest. The AI never decides `kind`, order or coins.
 
