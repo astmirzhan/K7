@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from 'next';
-import { Jersey_10, Pixelify_Sans } from 'next/font/google';
+import { Inter, Jersey_10, Silkscreen } from 'next/font/google';
 import './globals.css';
 
 const display = Jersey_10({ variable: '--font-display', weight: '400', subsets: ['latin'] });
-const body = Pixelify_Sans({ variable: '--font-body', weight: ['400', '500', '600', '700'], subsets: ['latin'] });
+// body text: Inter (readable at any size, the TZ body font); small caps labels: Silkscreen (pixel, but C ≠ O)
+const body = Inter({ variable: '--font-body', subsets: ['latin'] });
+const label = Silkscreen({ variable: '--font-label', weight: ['400', '700'], subsets: ['latin'] });
 
 // Absolute base for og:image: the Vercel production domain, else the configured app URL.
 const siteUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
@@ -31,7 +33,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${display.variable} ${body.variable} h-full antialiased`}>
+    <html lang="en" className={`${display.variable} ${body.variable} ${label.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

@@ -18,7 +18,8 @@
   --color-danger: #d84b6a;
 
   --font-display: var(--font-display), "Jersey 10", monospace;
-  --font-body: var(--font-body), "Pixelify Sans", monospace;
+  --font-body: var(--font-body), "Inter", system-ui, sans-serif;
+  --font-label: var(--font-label), "Silkscreen", monospace;
 
   --radius-k7: 12px;
   --radius-k7-lg: 16px;
@@ -79,10 +80,10 @@ body {
 }
 
 .k7-label {
-  font-family: var(--font-body);
-  font-weight: 700;
+  font-family: var(--font-label);
+  font-weight: 400;
   font-size: 11px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 
@@ -257,6 +258,24 @@ select {
 }
 @media (prefers-reduced-motion: reduce) {
   .k7-pin {
+    animation: none;
+  }
+}
+
+/* clouds drifting over the map */
+@keyframes k7-drift {
+  from {
+    transform: translateX(-30%);
+  }
+  to {
+    transform: translateX(130%);
+  }
+}
+.k7-drift {
+  animation: k7-drift 60s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .k7-drift {
     animation: none;
   }
 }
