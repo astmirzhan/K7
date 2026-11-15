@@ -1,10 +1,12 @@
-// Demo crowd: ~150 extra people in every state, in real cities, so the map is alive everywhere.
+// Demo crowd: one extra person in every state the base seed does not cover, so the map shows people everywhere
+// and the demo world stays around 100 people (60 base + Sarah + this crowd).
 // They are seed people (k7.seed.c###@example.com): connect requests to them are accepted at once.
 // Idempotent: deletes and recreates only k7.seed.c### users.  Run: pnpm seed:crowd
 import type { Avatar, Difficulty, UsState } from '../lib/types';
 import { US_STATES } from '../lib/types';
 import { US_CITIES } from '../lib/us-cities';
 import { admin, completeStage, createAuthUser, loadCatalog, need, onboard, rng, setPlanDirect, stagesOf } from './lib/seed-core';
+import { seedUsers } from './lib/seed-data';
 
 const log = (m: string) => process.stdout.write(`${m}\n`);
 const PREFIX = 'k7.seed.c';
@@ -27,8 +29,8 @@ const ALL = ['running', 'cycling', 'yoga', 'gym', 'swimming', 'climbing', 'pickl
 const SUITS = ['#3f8f4a', '#2e1b5b', '#3b6fd6', '#8b5ad6', '#d84b6a', '#2f6b45'];
 const BANDS = ['#ffc803', '#ff7fb0', '#ffffff', '#9ae04c', '#c9d2f7', '#ff6fa8'];
 const ACC = ['none', 'katana', 'staff', 'shuriken', 'headphones'] as const;
-// people per state, roughly by population; everyone else gets 2
-const WEIGHT: Partial<Record<UsState, number>> = { CA: 10, TX: 12, FL: 7, NY: 7, IL: 5, PA: 4, OH: 4, GA: 4, NC: 4, MI: 3, WA: 4, CO: 4, AZ: 3, MA: 3, TN: 3, VA: 3, OR: 3, MN: 3 };
+// states the base seed (pnpm seed) already fills
+const COVERED = new Set<UsState>(seedUsers().map((u) => u.profile.state));
 
 async function deleteCrowd(): Promise<number> {
   let page = 1;
@@ -59,13 +61,12 @@ async function main() {
   for (const state of US_STATES) {
     const cities = Object.keys(US_CITIES[state] ?? {});
     if (cities.length === 0) continue;
-    const count = WEIGHT[state] ?? 2;
+    const count = COVERED.has(state) ? 0 : 1;
     for (let k = 0; k < count; k++) {
       n++;
       const first = FIRST[(n * 7) % FIRST.length]!;
       const last = 'ABCDEFGHJKLMNPRSTVW'[Math.floor(rand() * 19)]!;
-      // Texas crowd sits mostly in Austin, where the judges live
-      const city = state === 'TX' && k < 6 ? 'Austin' : pick(cities);
+      const city = pick(cities);
       const slugs = new Set<string>();
       if (rand() < 0.75) slugs.add(pick(COMMON));
       while (slugs.size < 3) slugs.add(pick(ALL));
@@ -102,7 +103,7 @@ async function main() {
       if (n % 25 === 0) log(`  ${n} people…`);
     }
   }
-  log(`crowd ready: ${n} people in 50 states and DC`);
+  log(`crowd ready: ${n} people, one per state not covered by the base seed`);
 }
 
 main().catch((e) => {
