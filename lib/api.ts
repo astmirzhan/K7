@@ -54,6 +54,11 @@ function isApiError(v: unknown): v is ApiError {
     && typeof (v as { error?: { code?: unknown } }).error?.code === 'string';
 }
 
+// A request that never answers must not leave a screen loading forever: reads give up after 15 s,
+// writes after 30 s (onboarding waits for the AI roadmap). The error then shows a retry.
+const TIMEOUT_MS = { read: 15_000, write: 30_000 };
+const timeoutSignal = (ms: number) => (typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal ? AbortSignal.timeout(ms) : undefined);
+
 export async function request<T>(method: 'GET' | 'POST' | 'PATCH', path: string, body?: unknown): Promise<T> {
   let res: Response;
   try {
@@ -63,10 +68,13 @@ export async function request<T>(method: 'GET' | 'POST' | 'PATCH', path: string,
       cache: 'no-store',
       headers: body === undefined ? undefined : { 'content-type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
+      signal: timeoutSignal(method === 'GET' ? TIMEOUT_MS.read : TIMEOUT_MS.write),
     });
-  } catch {
+  } catch (e) {
+    const timedOut = e instanceof Error && (e.name === 'TimeoutError' || e.name === 'AbortError');
     const err = new ApiRequestError({
-      status: 0, code: 'INTERNAL', path, message: 'No connection. Check your internet and try again.',
+      status: 0, code: 'INTERNAL', path,
+      message: timedOut ? 'The server is taking too long. Try again.' : 'No connection. Check your internet and try again.',
     });
     listeners.forEach((l) => l(err));
     throw err;
