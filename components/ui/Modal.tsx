@@ -2,6 +2,7 @@
 import { useEffect, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { CrossIcon } from '@/components/scene/Icons';
+import { lockScroll } from '@/lib/scroll-lock';
 import { Panel } from './Panel';
 
 /** Centered panel on desktop, bottom sheet on phones. Closes on Escape / backdrop. */
@@ -26,11 +27,10 @@ export function Modal({
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     document.addEventListener('keydown', onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const unlock = lockScroll();
     return () => {
       document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prev;
+      unlock();
     };
   }, [open, onClose]);
 
