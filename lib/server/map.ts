@@ -72,7 +72,9 @@ export async function usersInState(
 ): Promise<MapUsersResponse> {
   const [rows, conns, catalog] = await Promise.all([matchUsers(me.id), myConnections(me.id), interestCatalog()]);
   const limit = PLAN_RULES[me.plan].mapVisible;
-  const visible = limit === null ? null : new Set(rows.slice(0, limit).map((r) => r.user_id));
+  // the limited slots go to my own state first (best match first inside), so a new Free user never opens an empty map
+  const ranked = [...rows.filter((r) => r.state === me.state), ...rows.filter((r) => r.state !== me.state)];
+  const visible = limit === null ? null : new Set(ranked.slice(0, limit).map((r) => r.user_id));
   const inState = rows.filter((r) => r.state === state);
   const shown = visible ? inState.filter((r) => visible.has(r.user_id)) : inState;
   const myCity = cityKey(me.city);

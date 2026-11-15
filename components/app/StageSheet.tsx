@@ -264,7 +264,6 @@ function Body({
             <input
               type="file"
               accept="image/*"
-              capture="environment"
               data-testid="stage-photo-input"
               className="sr-only"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
