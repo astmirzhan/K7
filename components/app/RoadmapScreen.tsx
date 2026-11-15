@@ -190,6 +190,8 @@ function Inner({ me, mode }: { me: OnboardedMe; mode: 'home' | 'roadmap' }) {
           level={complete.level}
           avatar={me.avatar}
           coins={complete.coins}
+          userId={me.id}
+          levels={levels}
           onNext={() => {
             setComplete(null);
             const next = levels.find((l) => l.progress.done < l.progress.total);
