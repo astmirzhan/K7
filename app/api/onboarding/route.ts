@@ -3,7 +3,7 @@ import { AppError, fromDbError } from '@/lib/server/errors';
 import { parseJson, route } from '@/lib/server/http';
 import { buildMe } from '@/lib/server/me';
 import { buildRoadmapRows } from '@/lib/server/roadmap/generate';
-import { interestCatalog, loadLevels } from '@/lib/server/roadmap/read';
+import { interestCatalog, invalidateCatalog, loadLevels } from '@/lib/server/roadmap/read';
 import { adminClient } from '@/lib/server/supabase';
 import { onboardingSchema } from '@/lib/server/validation';
 import type { OnboardingResponse } from '@/lib/types';
@@ -16,7 +16,12 @@ export const POST = route(async (req) => {
   const { data: existing } = await db.from('profiles').select('id').eq('id', user.id).maybeSingle();
   if (existing) throw new AppError('ALREADY_ONBOARDED');
 
-  const catalog = await interestCatalog();
+  let catalog = await interestCatalog();
+  // a goal typed a moment ago may have been created on another server instance: re-read the catalog once
+  if (body.interests.some((i) => !catalog.has(i.slug))) {
+    invalidateCatalog();
+    catalog = await interestCatalog();
+  }
   const unknown = body.interests.filter((i) => !catalog.has(i.slug)).map((i) => i.slug);
   if (unknown.length > 0) {
     throw new AppError('VALIDATION', 'Unknown interest', {
