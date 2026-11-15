@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Coin } from '@/components/scene/Coin';
 import { Ninja } from '@/components/scene/Ninja';
+import { BADGES, NinjaBadge } from '@/components/scene/NinjaBadge';
 import { Button } from '@/components/ui/Button';
 import { Sign } from '@/components/ui/Sign';
 import { DIFFICULTY_LABEL } from '@/lib/format';
@@ -21,7 +22,7 @@ export function LevelComplete({ level, avatar, coins, onNext }: { level: Level; 
   if (typeof document === 'undefined') return null;
 
   async function share() {
-    const text = `Level complete! ${level.interest.name} · ${DIFFICULTY_LABEL[level.difficulty]} · ${level.progress.total}/${level.progress.total} stages on K7`;
+    const text = `I earned the ${BADGES[level.difficulty].title} badge on K7: ${level.interest.name} · ${DIFFICULTY_LABEL[level.difficulty]} · ${level.progress.total}/${level.progress.total} stages`;
     try {
       if (navigator.share) await navigator.share({ text, url: window.location.origin });
       else {
@@ -51,8 +52,16 @@ export function LevelComplete({ level, avatar, coins, onNext }: { level: Level; 
         <p className="k7-label text-[12px]">
           {level.interest.name} · {DIFFICULTY_LABEL[level.difficulty]} · {level.progress.total} / {level.progress.total} stages
         </p>
-        <div className="k7-outline k7-shadow rounded-[16px] bg-[#e8f6d0] p-4">
-          <Ninja avatar={avatar} size={88} />
+        <div className="flex items-end gap-4">
+          <div className="k7-outline k7-shadow rounded-[16px] bg-[#e8f6d0] p-4">
+            <Ninja avatar={avatar} size={88} />
+          </div>
+          <div className="k7-pop flex flex-col items-center" data-testid="level-badge">
+            <NinjaBadge difficulty={level.difficulty} earned size={112} />
+            <span className="font-display text-[24px] leading-none" style={{ color: BADGES[level.difficulty].name }}>
+              {BADGES[level.difficulty].title}
+            </span>
+          </div>
         </div>
         {avatar.name ? <p className="k7-label -mt-2 text-[11px]">{avatar.name} levelled up</p> : null}
         <Sign className="-mt-2">
