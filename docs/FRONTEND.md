@@ -25,7 +25,7 @@ error handling, caching, polling and e2e hooks. API details: `docs/BACKEND.md`. 
 | `lib/server/plans.ts`, `lib/server/validation.ts` | Pure, safe on the client: `PLAN_RULES`, `PLAN_PRICE_USD`, `normalizeSocialUrl` (live check of the social link field) |
 | `components/AppProviders.tsx` | SWR config + global error reactions: 401 → `/login?next=`, 409 `NOT_ONBOARDED` → `/onboarding`, 402 → paywall |
 | `components/OnboardedGate.tsx` | Render-prop gate: `{(me) => <Screen me={me}/>}`; redirects not-onboarded users |
-| `proxy.ts` | Session refresh; signed-out → `/login?next=…` for app routes; signed-in → away from `/login`, `/signup` |
+| `proxy.ts` | Session refresh; signed-out → `/login?next=…` for app routes; signed-in → away from `/signup`; `/login` stays open and shows “signed in as … · continue · use another account” |
 
 ---
 
