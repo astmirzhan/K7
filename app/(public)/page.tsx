@@ -7,9 +7,12 @@ export default function LandingPage() {
   return (
     <Scene variant="hero">
       <main className="relative mx-auto flex w-full max-w-[1200px] flex-1 flex-col items-center justify-center px-4 pb-40 pt-16 text-center md:pb-48">
-        <Coin size={34} className="k7-float absolute left-[14%] top-[28%] hidden md:block" />
-        <Coin size={30} className="k7-float absolute right-[14%] top-[40%] hidden md:block [animation-delay:400ms]" />
-        <Coin size={26} className="k7-float absolute left-[30%] bottom-[30%] hidden md:block [animation-delay:800ms]" />
+        {/* decorative coins: desktop only (the svg's own inline-block beat `hidden`, so the wrapper hides them) */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 hidden md:block">
+          <Coin size={34} className="k7-float absolute left-[14%] top-[28%]" />
+          <Coin size={30} className="k7-float absolute right-[14%] top-[40%] [animation-delay:400ms]" />
+          <Coin size={26} className="k7-float absolute bottom-[30%] left-[30%] [animation-delay:800ms]" />
+        </div>
 
         <h1 className="k7-title text-[128px] md:text-[176px]">K7</h1>
         <p className="k7-title mt-2 text-[44px] md:text-[64px]">network sidequesting</p>
