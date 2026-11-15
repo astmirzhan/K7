@@ -39,12 +39,18 @@ export async function matchUsers(meId: string): Promise<MatchRow[]> {
 }
 
 export async function stateCounts(meId: string): Promise<MapStateCount[]> {
-  const rows = await matchUsers(meId);
+  const [rows, everyone] = await Promise.all([
+    matchUsers(meId),
+    adminClient().from('profiles').select('id, state').neq('id', meId),
+  ]);
+  if (everyone.error) throw new AppError('INTERNAL', undefined, { details: everyone.error.message });
   const counts = new Map<UsState, number>();
   for (const r of rows) counts.set(r.state, (counts.get(r.state) ?? 0) + 1);
-  return [...counts.entries()]
-    .map(([state, count]) => ({ state, count }))
-    .sort((a, b) => b.count - a.count || a.state.localeCompare(b.state));
+  const totals = new Map<UsState, number>();
+  for (const p of everyone.data as Array<{ state: UsState }>) totals.set(p.state, (totals.get(p.state) ?? 0) + 1);
+  return [...totals.keys()]
+    .map((state) => ({ state, count: counts.get(state) ?? 0, total: totals.get(state) ?? 0 }))
+    .sort((a, b) => b.count - a.count || b.total - a.total || a.state.localeCompare(b.state));
 }
 
 async function myConnections(meId: string): Promise<Map<string, { id: string; state: ConnectionState }>> {

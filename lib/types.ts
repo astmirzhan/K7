@@ -128,7 +128,8 @@ export type OnboardedMe = Extract<Me, { onboarded: true }>;
 // ---------- Map ----------
 export interface MapStateCount {
   state: UsState;
-  count: number; // full count on every plan
+  count: number;  // people sharing at least one goal with me (full count on every plan)
+  total?: number; // everyone on K7 in that state (map/states only; shown when nobody shares my goals)
 }
 export interface SharedInterest {
   slug: string;
