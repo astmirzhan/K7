@@ -45,3 +45,10 @@ export function localInputToIso(value: string): string {
   if (Number.isNaN(d.getTime())) throw new Error('Pick a date and time');
   return d.toISOString();
 }
+
+/** "You both do Running and Spanish · same city" — why a person shows up on the map. */
+export function matchReason(names: string[], sameCity: boolean): string {
+  if (names.length === 0) return sameCity ? 'Same city' : '';
+  const list = names.length === 1 ? names[0]! : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+  return `You both do ${list}${sameCity ? ' · same city' : ''}`;
+}

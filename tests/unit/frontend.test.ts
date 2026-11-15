@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiRequestError, api, KEYS, onApiError } from '../../lib/api';
 import { authMessage, safeNext } from '../../lib/auth-client';
-import { localInputToIso, nearbyLine, paywallCopy, planPrice } from '../../lib/format';
+import { localInputToIso, matchReason, nearbyLine, paywallCopy, planPrice } from '../../lib/format';
 import { reasonFromPath } from '../../lib/paywall';
 import { fitWithin } from '../../lib/photo';
 import { US_STATES } from '../../lib/types';
@@ -115,5 +115,17 @@ describe('copy', () => {
   it('converts datetime-local to ISO', () => {
     expect(localInputToIso('2026-11-20T18:30')).toMatch(/^2026-11-2\dT\d\d:30:00\.000Z$/);
     expect(() => localInputToIso('nope')).toThrow();
+  });
+});
+
+describe('matchReason', () => {
+  it('lists shared interests and the city', () => {
+    expect(matchReason(['Running'], true)).toBe('You both do Running · same city');
+    expect(matchReason(['Running', 'Spanish'], false)).toBe('You both do Running and Spanish');
+    expect(matchReason(['Running', 'Spanish', 'Guitar'], false)).toBe('You both do Running, Spanish and Guitar');
+  });
+  it('handles no shared interests', () => {
+    expect(matchReason([], true)).toBe('Same city');
+    expect(matchReason([], false)).toBe('');
   });
 });

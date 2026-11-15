@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppError, fromDbError, toErrorResponse } from '../../lib/server/errors';
 import { canAccessDifficulty, limitsFor, PLAN_RULES, requiredPlanForDifficulty } from '../../lib/server/plans';
-import { buildRoadmapPrompt, generateAiStages, parseAiStages } from '../../lib/server/roadmap/ai';
+import { buildRoadmapPrompt, parseAiStages } from '../../lib/server/roadmap/ai';
 import { buildRoadmapRows } from '../../lib/server/roadmap/generate';
 import { STAGE_SKELETON, toStageRows } from '../../lib/server/roadmap/skeleton';
 import { templateDrafts } from '../../lib/server/roadmap/templates';
@@ -44,7 +44,8 @@ describe('onboardingSchema', () => {
     expect(r.profile.socialUrl).toBe('https://instagram.com/sarah');
   });
   it('defaults bio', () => {
-    const { bio: _b, ...profile } = validOnboarding.profile;
+    const profile: Partial<typeof validOnboarding.profile> = { ...validOnboarding.profile };
+    delete profile.bio;
     expect(onboardingSchema.parse({ ...validOnboarding, profile }).profile.bio).toBe('');
   });
   it('rejects duplicate difficulties', () => {
