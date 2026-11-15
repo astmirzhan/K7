@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { Panel } from '@/components/ui/Panel';
-import { signOut } from '@/lib/auth-client';
+import { hardNavigate, signOut } from '@/lib/auth-client';
 import { useMe } from '@/lib/hooks';
 import type { OnboardedMe } from '@/lib/types';
 
@@ -38,7 +38,7 @@ export function OnboardedGate({
             onClick={async () => {
               setLeaving(true);
               await signOut();
-              router.replace('/login');
+              hardNavigate('/login');
             }}
           >
             sign out
