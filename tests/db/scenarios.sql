@@ -81,7 +81,7 @@ select pg_temp.fails_with(format('select public.complete_stage(%L, %L, null, nul
 
 -- ===== T5 connection requests =====
 select pg_temp.fails_with(format('select public.request_connection(%L, %L, ''running'')', :A, :A), 'VALIDATION');
-select pg_temp.fails_with(format('select public.request_connection(%L, %L, ''running'')', :A, :C), 'NO_SHARED_INTEREST');
+select pg_temp.fails_with(format('select public.request_connection(%L, %L, ''yoga'')', :A, :C), 'NO_SHARED_INTEREST'); -- yoga is not A's goal
 select pg_temp.fails_with(format('select public.request_connection(%L, %L, ''running'')', :G, :A), 'NOT_ONBOARDED');
 select public.request_connection(:A, :B, 'running');
 select pg_temp.fails_with(format('select public.request_connection(%L, %L, ''running'')', :A, :B), 'ALREADY_CONNECTED');
@@ -213,5 +213,26 @@ select public.create_onboarding('00000000-0000-0000-0000-0000000000c1', testkit.
 select public.create_onboarding('00000000-0000-0000-0000-0000000000c2', testkit.profile('Lee', 'WY', 'Casper', 'solo'), testkit.interests('chess','bouldering','yoga'), testkit.stages('chess','bouldering','yoga'));
 select pg_temp.ok(exists (select 1 from public.match_users('00000000-0000-0000-0000-0000000000c1') where user_id = '00000000-0000-0000-0000-0000000000c2'), 'T13 two people with the same custom goal match');
 select pg_temp.ok((select count(*) from public.interests where not custom) = 30, 'T13 curated catalog stays 30');
+
+-- ===== T14 open matching: no shared goal needed to meet, connect, finish "Find a buddy" and co-op =====
+insert into auth.users (id, email) values
+  ('00000000-0000-0000-0000-0000000000d1', 'd1@example.com'),
+  ('00000000-0000-0000-0000-0000000000d2', 'd2@example.com');
+select public.create_onboarding('00000000-0000-0000-0000-0000000000d1', testkit.profile('Pat', 'MT', 'Bozeman', 'solo'), testkit.interests('hiking','french','piano'), testkit.stages('hiking','french','piano'));
+select public.create_onboarding('00000000-0000-0000-0000-0000000000d2', testkit.profile('Sky', 'MT', 'Bozeman', 'solo'), testkit.interests('baking','japanese','coding'), testkit.stages('baking','japanese','coding'));
+select pg_temp.ok((select shared from public.match_users('00000000-0000-0000-0000-0000000000d1') where user_id = '00000000-0000-0000-0000-0000000000d2') = '[]'::jsonb, 'T14 people without a shared goal are listed');
+select pg_temp.ok((select score from public.match_users('00000000-0000-0000-0000-0000000000d1') where user_id = '00000000-0000-0000-0000-0000000000d2') = 3 + 1, 'T14 score: same city +3, same meet style +1');
+select public.complete_stage('00000000-0000-0000-0000-0000000000d1', testkit.stage('00000000-0000-0000-0000-0000000000d1', 'hiking', 1), null, null, 'public', null);
+select public.complete_stage('00000000-0000-0000-0000-0000000000d2', testkit.stage('00000000-0000-0000-0000-0000000000d2', 'baking', 1), null, null, 'public', null);
+select public.respond_connection('00000000-0000-0000-0000-0000000000d2',
+  (public.request_connection('00000000-0000-0000-0000-0000000000d1', '00000000-0000-0000-0000-0000000000d2', 'hiking')->>'id')::uuid, 'accepted');
+select pg_temp.ok((select status from roadmap_stages where id = testkit.stage('00000000-0000-0000-0000-0000000000d1', 'hiking', 2)) = 'done'
+               and (select status from roadmap_stages where id = testkit.stage('00000000-0000-0000-0000-0000000000d2', 'baking', 2)) = 'done', 'T14 "Find a buddy" completes for both with any buddy');
+select public.complete_stage('00000000-0000-0000-0000-0000000000d1', testkit.stage('00000000-0000-0000-0000-0000000000d1', 'hiking', 3),
+  '00000000-0000-0000-0000-0000000000d1/' || testkit.stage('00000000-0000-0000-0000-0000000000d1', 'hiking', 3) || '/a.jpg', null, 'public', '00000000-0000-0000-0000-0000000000d2');
+select public.complete_stage('00000000-0000-0000-0000-0000000000d2', testkit.stage('00000000-0000-0000-0000-0000000000d2', 'baking', 3),
+  '00000000-0000-0000-0000-0000000000d2/' || testkit.stage('00000000-0000-0000-0000-0000000000d2', 'baking', 3) || '/b.jpg', null, 'public', '00000000-0000-0000-0000-0000000000d1');
+select pg_temp.ok((select status from roadmap_stages where id = testkit.stage('00000000-0000-0000-0000-0000000000d1', 'hiking', 3)) = 'done'
+               and (select status from roadmap_stages where id = testkit.stage('00000000-0000-0000-0000-0000000000d2', 'baking', 3)) = 'done', 'T14 co-op pairs across different goals');
 
 \echo 'ALL DB SCENARIOS PASSED'

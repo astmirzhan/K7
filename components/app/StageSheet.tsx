@@ -61,8 +61,9 @@ function Body({
   const { data: conns } = useConnections();
 
   const partners = useMemo(
-    () => (conns ? conns.accepted.filter((c) => c.sharedInterests.includes(stage.interestSlug)) : []),
-    [conns, stage.interestSlug],
+    // any buddy can do a co-op stage with you, whatever their own goals are
+    () => conns?.accepted ?? [],
+    [conns],
   );
 
   const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
@@ -226,7 +227,7 @@ function Body({
           <Field label="Partner" error={fieldErr.partner}>
             {partners.length === 0 ? (
               <div className="flex flex-col items-start gap-2">
-                <p className="text-[14px] text-ink/70">Connect with someone who does {level.interest.name} first.</p>
+                <p className="text-[14px] text-ink/70">Connect with a buddy on the map first — any buddy can do this stage with you.</p>
                 <ButtonLink href={`/map?interest=${stage.interestSlug}`} size="sm" variant="secondary">
                   open the map
                 </ButtonLink>

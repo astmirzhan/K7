@@ -76,17 +76,7 @@ test('GP-1 onboarding: landing → sign in → ninja → 3 goals → profile →
   await page.getByTestId('avatar-ninja-1').click();
   await page.getByTestId('onboarding-next').click();
 
-  // step 2: three goals, Hard / Medium / Easy (the catalog shows 8 chips until "+ N more" is tapped)
-  await page.getByRole('button', { name: /^\+ \d+ more$/ }).click();
-  await page.getByTestId('interest-running').click();
-  await page.getByTestId('interest-spanish').click();
-  await page.getByTestId(`interest-${EASY}`).click();
-  await expect(page.getByTestId('difficulty-running-5')).toBeVisible();
-  await expect(page.getByTestId('difficulty-spanish-3')).toBeVisible();
-  await expect(page.getByTestId(`difficulty-${EASY}-1`)).toBeVisible();
-  await page.getByTestId('onboarding-next').click();
-
-  // step 3: profile
+  // step 2: profile
   await page.getByTestId('profile-displayName').fill('Judge A');
   await page.getByTestId('profile-state').selectOption({ value: 'TX' });
   await page.getByTestId('profile-city').fill('Austin');
@@ -94,6 +84,16 @@ test('GP-1 onboarding: landing → sign in → ninja → 3 goals → profile →
   await page.getByTestId('profile-meetStyle-solo').click();
   await page.getByTestId('profile-socialUrl').fill('https://instagram.com/judge.a');
   await page.getByTestId('profile-bio').fill('Testing the whole path.');
+  await page.getByTestId('onboarding-next').click();
+
+  // step 3: three typed goals, each with its N value (typed names land on the suggested goals)
+  await page.getByTestId('goal-input-1').fill('Running');
+  await page.getByTestId('goal-n-1-5').click();
+  await page.getByTestId('goal-input-2').fill('Learn Spanish');
+  await page.getByTestId('goal-n-2-3').click();
+  await page.getByTestId('goal-input-3').fill('Guitar');
+  await page.getByTestId('goal-n-3-1').click();
+  await expect(page.getByTestId('goals-total')).toBeVisible();
   await page.getByTestId('onboarding-submit').click();
 
   await page.waitForURL(/\/home/, { timeout: 60_000 });

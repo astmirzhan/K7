@@ -253,10 +253,10 @@ Every route: `route()` wrapper → `requireUser` → Zod (`parseJson` / `parseQu
 | 5 | `GET /api/roadmap` | — | `Level[]` | `loadLevels(user, plan)` |
 | 6 | `POST /api/stages/[id]/upload-url` | — | `UploadUrlResponse` | stage mine; kind `solo`/`coop`; status `active` (or `waiting_partner` for coop); plan allows (402 + requiredPlan) |
 | 7 | `POST /api/stages/[id]/complete` | `completeStageSchema` | `CompleteStageResponse` | **exists**. Photo must exist in Storage |
-| 8 | `GET /api/map/states` | — | `MapStateCount[]` | `count` = people sharing a goal with me, `total` = everyone in the state; sorted by count desc |
+| 8 | `GET /api/map/states` | — | `MapStateCount[]` | open matching: `count` = everyone I can see in the state (shared goals first in the list), `total` = everyone; sorted by count desc |
 | 9 | `GET /api/map/users` | `?state=` (`mapUsersQuerySchema`) | `MapUsersResponse` | §7.4 |
 | 10 | `GET /api/connections` | — | `ConnectionsResponse` | from `list_connections`; incoming = pending & to me; outgoing = pending & from me. `sharedInterests` per connection = one `user_interests` query for all other ids, intersected with mine (`lib/server/connections.ts`); the same mapper is used by #11 and #12 |
-| 11 | `POST /api/connections` | `createConnectionSchema` | `Connection` | `request_connection`; 402 → `requiredPlan:'starter'` |
+| 11 | `POST /api/connections` | `createConnectionSchema` | `Connection` | `request_connection`: `interestSlug` must be one of the sender's goals (the receiver need not have it); 402 → `requiredPlan:'starter'` |
 | 12 | `PATCH /api/connections/[id]` | `respondConnectionSchema` | `Connection` | `respond_connection`; on accept `socialUrl` filled |
 | 12a | `POST /api/connections/[id]/icebreaker` | — | `IcebreakerResponse` | Pro/Crew only (402 `requiredPlan:'pro'`); I am a party (404); connection accepted (409 `INVALID_STATE`); one model call, template fallback |
 | 13 | `GET /api/meetups` | — | `Meetup[]` | my connections' meetups, upcoming first |

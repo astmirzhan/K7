@@ -190,7 +190,7 @@ function Inner({ me }: { me: OnboardedMe }) {
         ) : (
           <>
             {items.map((c) => (
-              <MatchCard key={c.user.userId} card={c} onGone={() => void users.mutate()} />
+              <MatchCard key={c.user.userId} card={c} myGoals={me.interests.map((i) => ({ slug: i.interest.slug, name: i.interest.name }))} onGone={() => void users.mutate()} />
             ))}
             {hidden > 0 ? (
               <button
