@@ -47,8 +47,8 @@ test('publishable key + user JWT: only own profile row, no RPC, no public_profil
   const anon = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!);
   const anonProfiles = await anon.from('profiles').select('id');
   expect(anonProfiles.data ?? []).toEqual([]);
-  const interests = await anon.from('interests').select('slug');
-  expect(interests.data?.length).toBe(30);
+  const interests = await anon.from('interests').select('slug').eq('custom', false);
+  expect(interests.data?.length).toBe(30); // the curated catalog; goals typed by users are flagged custom
 });
 
 test('API never leaks social_url, plan or stripe ids of other people', async ({ request }) => {
