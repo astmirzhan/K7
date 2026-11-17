@@ -6,7 +6,19 @@
 
 **Pick 3 goals. Get a quest map made for your city. Meet people nearby who start the same thing.**
 
-[**▶ Open the live app**](https://k7-indol.vercel.app) · built for Business Cup 2.0 · Next.js 16 · Supabase · Stripe · Gemini
+<p align="center">
+  <a href="https://k7-indol.vercel.app"><img src="https://img.shields.io/badge/▶_Open_Live_App-k7--indol.vercel.app-ffc803?style=for-the-badge&labelColor=2e1b5b" alt="Open the live app" /></a>
+  <img src="https://img.shields.io/badge/Built_for-Business_Cup_2.0-2e1b5b?style=for-the-badge&labelColor=a6d86a" alt="Built for Business Cup 2.0" />
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" alt="Next.js 16" />
+  <img src="https://img.shields.io/badge/React-19-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React 19" />
+  <img src="https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Supabase-Postgres_%26_RLS-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase" />
+  <img src="https://img.shields.io/badge/Stripe-Checkout-635BFF?style=for-the-badge&logo=stripe&logoColor=white" alt="Stripe" />
+  <img src="https://img.shields.io/badge/Gemini-AI_Roadmaps-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white" alt="Gemini AI" />
+</p>
 
 </div>
 
