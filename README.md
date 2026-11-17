@@ -14,9 +14,9 @@
 
 ## 🎬 Demo video
 
-<a href="docs/readme/demo.mp4"><img src="docs/readme/demo-poster.jpg" alt="K7 demo video: tap to play" width="100%" /></a>
+<a href="https://raw.githubusercontent.com/astmirzhan/K7/main/docs/readme/demo.mp4"><img src="docs/readme/demo-poster.jpg" alt="K7 demo video: tap to play" width="100%" /></a>
 
-**[▶ Watch the demo (MP4)](docs/readme/demo.mp4)**: a full run from naming your ninja to a co-op stage and a badge.
+**[▶ Watch the demo (MP4)](https://raw.githubusercontent.com/astmirzhan/K7/main/docs/readme/demo.mp4)**: a full run from naming your ninja to a co-op stage and a badge.
 
 ## 🪙 What it is
 
